@@ -1,0 +1,254 @@
+{
+  "/clientes/1": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/clientes/2": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/clientes/500": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/clientes/99999": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/clientes/100000": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/clientes/100001": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/clientes/abc": {
+    "status": 400,
+    "corpo": {
+      "erro": "id invalido"
+    }
+  },
+  "/clientes?email=cliente3%40exemplo.com": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/clientes?email=Cliente4%40Exemplo.com": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/clientes?email=CLIENTE10%40EXEMPLO.COM": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/clientes?email=ninguem%40exemplo.com": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/clientes": {
+    "status": 400,
+    "corpo": {
+      "erro": "informe o parametro email"
+    }
+  },
+  "/clientes/7/pedidos": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/clientes/42/pedidos": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/clientes/31337/pedidos": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/clientes/99999/pedidos": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/clientes/100001/pedidos": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/pedidos?status=pago": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/pedidos?status=entregue&pagina=3": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/pedidos?status=cancelado&pagina=250": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/pedidos?status=pendente&pagina=1": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/pedidos?status=pago&pagina=15000": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/pedidos?status=perdido": {
+    "status": 400,
+    "corpo": {
+      "erro": "status deve ser um de: pago, entregue, cancelado, pendente"
+    }
+  },
+  "/pedidos?status=pago&pagina=0": {
+    "status": 400,
+    "corpo": {
+      "erro": "pagina invalida"
+    }
+  },
+  "/produtos/busca?q=cadeira": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/produtos/busca?q=lumin": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/produtos/busca?q=ERGO": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/produtos/busca?q=sem%20fio": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/produtos/busca?q=inexistente": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/produtos/busca?q=ab": {
+    "status": 400,
+    "corpo": {
+      "erro": "o termo de busca precisa ter pelo menos 3 caracteres"
+    }
+  },
+  "/relatorios/vendas-por-dia?inicio=2024-01-01&fim=2024-01-07": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/relatorios/vendas-por-dia?inicio=2024-02-27&fim=2024-03-02": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/relatorios/vendas-por-dia?inicio=2025-12-25&fim=2025-12-31": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/relatorios/vendas-por-dia?inicio=2023-12-30&fim=2024-01-02": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/relatorios/vendas-por-dia?inicio=2024-03-01&fim=2024-02-01": {
+    "status": 400,
+    "corpo": {
+      "erro": "o periodo deve ter entre 1 e 31 dias"
+    }
+  },
+  "/relatorios/vendas-por-dia?inicio=2024-01-01&fim=2024-03-01": {
+    "status": 400,
+    "corpo": {
+      "erro": "o periodo deve ter entre 1 e 31 dias"
+    }
+  },
+  "/relatorios/vendas-por-dia?inicio=2024-02-30&fim=2024-03-01": {
+    "status": 400,
+    "corpo": {
+      "erro": "informe inicio e fim no formato AAAA-MM-DD"
+    }
+  },
+  "/relatorios/top-produtos": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/relatorios/top-produtos?limite=5": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/relatorios/top-produtos?limite=50": {
+    "status": 500,
+    "corpo": {
+      "erro": "erro interno"
+    }
+  },
+  "/relatorios/top-produtos?limite=0": {
+    "status": 400,
+    "corpo": {
+      "erro": "limite deve ser um inteiro entre 1 e 50"
+    }
+  },
+  "/relatorios/top-produtos?limite=51": {
+    "status": 400,
+    "corpo": {
+      "erro": "limite deve ser um inteiro entre 1 e 50"
+    }
+  }
+}
