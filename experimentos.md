@@ -17,3 +17,13 @@
 - **Depois:** três execuções de `02-pedidos-join`, com os mesmos parâmetros: [160657](resultados/20261106-160657-02-pedidos-join/), [160838](resultados/20261106-160838-02-pedidos-join/) e [161023](resultados/20261106-161023-02-pedidos-join/). Todas tiveram `0.00%` de erros e terminaram com “Contrato mantido”.
 - **Status:** aplicada e medida.
 - **Conclusão:** comparada à versão com pool, a mediana subiu de 2,86 para 4,21 requisições/s (+47,2%). O p95 geral caiu de 25.227,2 ms para 10.916,1 ms (-56,7%), e o p95 de `/clientes/:id/pedidos` caiu de 30.030,7 ms para 11.155,5 ms (-62,8%). A CPU média do banco permaneceu praticamente igual (99,3% para 99,4%), enquanto a memória máxima mediana do banco subiu de 479,0 MiB para 502,4 MiB, perto do limite de 512 MiB. A mudança acelerou a API nesta carga, mas não reduziu a saturação de CPU e elevou o pico de memória observado; esse custo precisa ser acompanhado nos próximos experimentos.
+
+## 03 — Índices para pedidos do cliente
+
+- **Hipótese:** índices B-tree em `pedidos(cliente_id, criado_em DESC, id DESC)` e `itens_pedido(pedido_id, id)` devem evitar as leituras sequenciais observadas no plano da rota com JOIN, reduzindo o p95 de `/clientes/:id/pedidos` e a carga do banco. O custo é espaço em disco e manutenção dos índices.
+- **Evidência anterior:** [planos e índices antes do teste](diagnostico/03-planos-antes-indices.txt). A consulta JOIN fez leitura sequencial de 500 mil pedidos e 1,5 milhão de itens, com tempo de execução de 4.706 ms para o cliente analisado; só as quatro chaves primárias apareciam em `\\di`.
+- **Fonte da hipótese:** [documentação PostgreSQL 16 — índices](https://www.postgresql.org/docs/16/indexes.html) explica o benefício e o custo geral de índices; [índices multicoluna](https://www.postgresql.org/docs/16/indexes-multicolumn.html) explica a utilidade de colocar primeiro a coluna filtrada (`cliente_id` ou `pedido_id`) e depois as colunas de ordenação.
+- **Antes:** três execuções de `02-pedidos-join`: [160657](resultados/20261106-160657-02-pedidos-join/), [160838](resultados/20261106-160838-02-pedidos-join/) e [161023](resultados/20261106-161023-02-pedidos-join/). O p95 mediano da rota foi 11.155,5 ms.
+- **Depois:** pendente.
+- **Status:** mudança em preparação; ainda sem medição posterior.
+- **Conclusão:** pendente.
