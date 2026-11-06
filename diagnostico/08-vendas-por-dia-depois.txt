@@ -1,0 +1,26 @@
+Diagnostico depois de remover observacoes de vendas-por-dia
+Commit medido: ec7b1b8
+Mesmo intervalo de 7 dias usado antes.
+
+                                                                            QUERY PLAN                                                                             
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather  (cost=1000.85..29546.54 rows=6744 width=20) (actual time=12.270..174.055 rows=12945 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   Buffers: shared hit=20380
+   ->  Nested Loop  (cost=0.85..27872.14 rows=2810 width=20) (actual time=9.221..130.090 rows=4315 loops=3)
+         Buffers: shared hit=20380
+         ->  Parallel Index Only Scan using idx_pedidos_status on pedidos p  (cost=0.42..18076.76 rows=937 width=12) (actual time=9.144..26.985 rows=1438 loops=3)
+               Filter: ((status <> 'cancelado'::text) AND ((criado_em)::date >= '2024-01-01'::date) AND ((criado_em)::date <= '2024-01-07'::date))
+               Rows Removed by Filter: 165229
+               Heap Fetches: 576
+               Buffers: shared hit=3052
+         ->  Index Scan using idx_itens_pedido on itens_pedido i  (cost=0.43..10.41 rows=4 width=12) (actual time=0.021..0.025 rows=3 loops=4313)
+               Index Cond: (pedido_id = p.id)
+               Buffers: shared hit=17328
+ Planning:
+   Buffers: shared hit=281 read=25
+ Planning Time: 3.381 ms
+ Execution Time: 194.198 ms
+(18 rows)
+
