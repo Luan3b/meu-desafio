@@ -27,3 +27,13 @@
 - **Depois:** três execuções de `03-indices-pedidos-cliente`: [161856](resultados/20261106-161856-03-indices-pedidos-cliente/), [162035](resultados/20261106-162035-03-indices-pedidos-cliente/) e [162210](resultados/20261106-162210-03-indices-pedidos-cliente/). Todas tiveram `0.00%` de erros e “Contrato mantido”. O plano após a mudança e o tamanho dos índices estão em [04-planos-indices-depois.txt](diagnostico/04-planos-indices-depois.txt).
 - **Status:** aplicada e medida.
 - **Conclusão:** comparada à versão com JOIN, a mediana passou de 4,21 para 6,25 requisições/s (+48,5%); o p95 geral caiu de 10.916,1 ms para 9.058 ms (-17,0%); e o p95 de `/clientes/:id/pedidos` caiu de 11.155,5 ms para 4.345,1 ms (-61,1%). O plano de uma execução da consulta mudou de leituras sequenciais de tabelas para buscas pelos dois novos índices; o tempo de execução nesse diagnóstico caiu de 4.706,174 ms para 1,179 ms. O custo medido dos índices foi 51 MB em disco (32 MB + 19 MB). A CPU média do banco permaneceu perto de 100%, o pico mediano de memória do banco foi 497,8 MiB de 512 MiB, e a memória média da API subiu de 34,8 para 71,5 MiB conforme a vazão aumentou. O ganho de latência nesta rota é claro, mas a saturação de CPU continua e o uso de memória precisa ser acompanhado.
+
+## 04 — Índice para pedidos por status
+
+- **Hipótese:** um índice B-tree em `pedidos(status, criado_em DESC, id DESC)` deve acelerar a contagem e a paginação por status, evitando leituras sequenciais e ordenação externa, principalmente nas páginas mais distantes. O custo é espaço em disco e manutenção do índice.
+- **Evidência anterior:** [planos antes do índice](diagnostico/05-planos-status-antes.txt). A contagem por status levou 985 ms com leitura sequencial; a primeira página levou 1.105 ms com leitura e ordenação paralelas; a página 15.000 levou 3.112 ms e usou cerca de 90 MB de arquivos temporários para ordenação externa.
+- **Fonte da hipótese:** [documentação PostgreSQL 16 — índices](https://www.postgresql.org/docs/16/indexes.html) descreve o ganho de leitura e o custo adicional de índices; [tipos de índice](https://www.postgresql.org/docs/16/indexes-types.html) explica que B-tree atende comparações de igualdade e pode fornecer linhas em ordem.
+- **Antes:** três execuções de `03-indices-pedidos-cliente`: [161856](resultados/20261106-161856-03-indices-pedidos-cliente/), [162035](resultados/20261106-162035-03-indices-pedidos-cliente/) e [162210](resultados/20261106-162210-03-indices-pedidos-cliente/). O p95 mediano de `/pedidos?status=&pagina=` foi 10.675,4 ms.
+- **Depois:** pendente.
+- **Status:** mudança em preparação; ainda sem medição posterior.
+- **Conclusão:** pendente.
