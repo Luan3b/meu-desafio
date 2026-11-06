@@ -1,0 +1,49 @@
+Diagnostico depois do experimento de indices
+Commit medido: 3e1f1db
+
+--- Indices e tamanhos (\di+) ---
+                                                 List of relations
+ Schema |        Name         | Type  | Owner |    Table     | Persistence | Access method |  Size   | Description 
+--------+---------------------+-------+-------+--------------+-------------+---------------+---------+-------------
+ public | clientes_pkey       | index | loja  | clientes     | permanent   | btree         | 2208 kB | 
+ public | idx_itens_pedido    | index | loja  | itens_pedido | permanent   | btree         | 32 MB   | 
+ public | idx_pedidos_cliente | index | loja  | pedidos      | permanent   | btree         | 19 MB   | 
+ public | itens_pedido_pkey   | index | loja  | itens_pedido | permanent   | btree         | 32 MB   | 
+ public | pedidos_pkey        | index | loja  | pedidos      | permanent   | btree         | 11 MB   | 
+ public | produtos_pkey       | index | loja  | produtos     | permanent   | btree         | 456 kB  | 
+(6 rows)
+
+--- Tamanho dos indices novos ---
+       indice        | tamanho 
+---------------------+---------
+ idx_itens_pedido    | 32 MB
+ idx_pedidos_cliente | 19 MB
+(2 rows)
+
+--- Plano da consulta JOIN da rota /clientes/:id/pedidos ---
+                                                                     QUERY PLAN                                                                      
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+ Incremental Sort  (cost=20.54..98.44 rows=15 width=61) (actual time=1.081..1.111 rows=10 loops=1)
+   Sort Key: p.criado_em DESC, p.id DESC, i.id
+   Presorted Key: p.criado_em, p.id
+   Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 25kB  Peak Memory: 25kB
+   Buffers: shared hit=57 read=10
+   ->  Nested Loop Left Join  (cost=1.14..98.03 rows=15 width=61) (actual time=0.317..1.008 rows=10 loops=1)
+         Buffers: shared hit=50 read=8
+         ->  Nested Loop Left Join  (cost=0.85..93.45 rows=15 width=34) (actual time=0.300..0.884 rows=10 loops=1)
+               Buffers: shared hit=20 read=8
+               ->  Index Scan using idx_pedidos_cliente on pedidos p  (cost=0.42..24.51 rows=5 width=18) (actual time=0.126..0.151 rows=5 loops=1)
+                     Index Cond: (cliente_id = 42)
+                     Buffers: shared hit=6 read=2
+               ->  Index Scan using idx_itens_pedido on itens_pedido i  (cost=0.43..13.75 rows=4 width=20) (actual time=0.132..0.135 rows=2 loops=5)
+                     Index Cond: (pedido_id = p.id)
+                     Buffers: shared hit=14 read=6
+         ->  Index Scan using produtos_pkey on produtos pr  (cost=0.29..0.31 rows=1 width=31) (actual time=0.007..0.007 rows=1 loops=10)
+               Index Cond: (id = i.produto_id)
+               Buffers: shared hit=30
+ Planning:
+   Buffers: shared hit=151 read=11
+ Planning Time: 2.039 ms
+ Execution Time: 1.179 ms
+(22 rows)
+
