@@ -1,0 +1,80 @@
+Diagnostico depois do indice de pedidos por status
+Commit medido: 9ffeb7e
+
+--- Indices e tamanhos (\di+) ---
+                                                 List of relations
+ Schema |        Name         | Type  | Owner |    Table     | Persistence | Access method |  Size   | Description 
+--------+---------------------+-------+-------+--------------+-------------+---------------+---------+-------------
+ public | clientes_pkey       | index | loja  | clientes     | permanent   | btree         | 2208 kB | 
+ public | idx_itens_pedido    | index | loja  | itens_pedido | permanent   | btree         | 32 MB   | 
+ public | idx_pedidos_cliente | index | loja  | pedidos      | permanent   | btree         | 19 MB   | 
+ public | idx_pedidos_status  | index | loja  | pedidos      | permanent   | btree         | 21 MB   | 
+ public | itens_pedido_pkey   | index | loja  | itens_pedido | permanent   | btree         | 32 MB   | 
+ public | pedidos_pkey        | index | loja  | pedidos      | permanent   | btree         | 11 MB   | 
+ public | produtos_pkey       | index | loja  | produtos     | permanent   | btree         | 456 kB  | 
+(7 rows)
+
+--- Tamanho do indice novo ---
+       indice       | tamanho 
+--------------------+---------
+ idx_pedidos_status | 21 MB
+(1 row)
+
+--- Plano da contagem por status ---
+                                                                                 QUERY PLAN                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=11359.93..11359.94 rows=1 width=8) (actual time=918.155..923.473 rows=1 loops=1)
+   Buffers: shared hit=1691
+   ->  Gather  (cost=11359.71..11359.92 rows=2 width=8) (actual time=917.520..923.452 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=1691
+         ->  Partial Aggregate  (cost=10359.71..10359.72 rows=1 width=8) (actual time=914.147..914.154 rows=1 loops=3)
+               Buffers: shared hit=1691
+               ->  Parallel Index Only Scan using idx_pedidos_status on pedidos  (cost=0.42..10047.96 rows=124701 width=0) (actual time=0.041..426.581 rows=100000 loops=3)
+                     Index Cond: (status = 'pago'::text)
+                     Heap Fetches: 345
+                     Buffers: shared hit=1691
+ Planning:
+   Buffers: shared hit=21 read=7
+ Planning Time: 1.096 ms
+ Execution Time: 923.525 ms
+(16 rows)
+
+--- Plano da primeira pagina por status ---
+                                                                  QUERY PLAN                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=0.42..6.28 rows=20 width=298) (actual time=0.029..0.190 rows=20 loops=1)
+   Buffers: shared hit=23
+   ->  Index Scan using idx_pedidos_status on pedidos  (cost=0.42..87686.08 rows=299283 width=298) (actual time=0.025..0.134 rows=20 loops=1)
+         Index Cond: (status = 'pago'::text)
+         Buffers: shared hit=23
+ Planning:
+   Buffers: shared hit=28 read=2
+ Planning Time: 0.447 ms
+ Execution Time: 0.231 ms
+(9 rows)
+
+--- Plano da pagina 15000 por status ---
+                                                                  QUERY PLAN                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=81567.39..81567.50 rows=1 width=298) (actual time=5080.057..5091.482 rows=20 loops=1)
+   Buffers: shared hit=7081 read=13879, temp read=11474 written=11507
+   ->  Gather Merge  (cost=52468.45..81567.39 rows=249402 width=298) (actual time=3219.941..4526.509 rows=300000 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=7081 read=13879, temp read=11474 written=11507
+         ->  Sort  (cost=51468.43..51780.18 rows=124701 width=298) (actual time=3202.155..3403.596 rows=100000 loops=3)
+               Sort Key: criado_em DESC, id DESC
+               Sort Method: external merge  Disk: 29928kB
+               Buffers: shared hit=7081 read=13879, temp read=11474 written=11507
+               Worker 0:  Sort Method: external merge  Disk: 30872kB
+               Worker 1:  Sort Method: external merge  Disk: 30992kB
+               ->  Parallel Seq Scan on pedidos  (cost=0.00..23438.17 rows=124701 width=298) (actual time=0.030..451.014 rows=100000 loops=3)
+                     Filter: (status = 'pago'::text)
+                     Rows Removed by Filter: 66667
+                     Buffers: shared hit=6955 read=13879
+ Planning Time: 0.102 ms
+ Execution Time: 5098.664 ms
+(18 rows)
+

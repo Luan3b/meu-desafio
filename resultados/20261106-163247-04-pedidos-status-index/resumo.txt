@@ -1,0 +1,17 @@
+Medição: 04-pedidos-status-index
+Carga: 20 usuários virtuais por 60s
+
+Requisições:        686
+Requisições/s:      10.13
+Tempo de resposta:  mediana 1012.3 ms | p95 6202.0 ms | p99 13239.0 ms
+Erros:              0.00%
+
+Por rota:
+rota                  req       mediana       p95           p99           erros   
+cliente               182       605.0 ms      1400.3 ms     3888.8 ms     0.0%    
+cliente-por-email     102       1097.9 ms     2084.3 ms     5960.3 ms     0.0%    
+pedidos-do-cliente    145       1208.7 ms     2902.0 ms     6002.0 ms     0.0%    
+pedidos-por-status    93        1798.3 ms     7116.9 ms     9737.0 ms     0.0%    
+busca-produtos        106       814.0 ms      1658.6 ms     5443.7 ms     0.0%    
+vendas-por-dia        46        5066.8 ms     9842.5 ms     11397.9 ms    0.0%    
+top-produtos          12        13695.2 ms    27518.6 ms    30536.0 ms    0.0%    
