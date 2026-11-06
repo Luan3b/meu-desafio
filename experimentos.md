@@ -37,3 +37,13 @@
 - **Depois:** três execuções de `04-pedidos-status-index`: [163111](resultados/20261106-163111-04-pedidos-status-index/), [163247](resultados/20261106-163247-04-pedidos-status-index/) e [163426](resultados/20261106-163426-04-pedidos-status-index/). Todas tiveram `0.00%` de erros e “Contrato mantido”. Os planos e o tamanho do índice estão em [06-planos-status-depois.txt](diagnostico/06-planos-status-depois.txt).
 - **Status:** aplicada e medida.
 - **Conclusão:** comparada à versão anterior, a mediana passou de 6,25 para 10,13 requisições/s (+62,1%); o p95 geral caiu de 9.058 ms para 6.202 ms (-31,5%); e o p95 da rota por status caiu de 10.675,4 ms para 6.582,4 ms (-38,3%). O plano da primeira página passou a usar o índice e caiu de 1.105 ms para 0,231 ms; a contagem continuou custosa, caindo de 985 para 924 ms. A página 15.000 ainda escolheu leitura sequencial e ordenação externa: no diagnóstico pós-índice levou 5.099 ms, contra 3.112 ms antes, então paginação profunda permanece um gargalo. O índice ocupa 21 MB. A CPU média do banco continuou perto de 100% (mediana 99,8% antes e 99,7% depois); o pico mediano de memória caiu de 497,8 para 478,3 MiB, com variação entre execuções. O índice melhorou o conjunto medido, sobretudo a primeira página, mas não resolveu contagem nem páginas profundas.
+
+## 05 — Remover coluna não usada em vendas por dia
+
+- **Hipótese:** retirar `p.observacoes` da consulta deve reduzir os dados enviados pelo PostgreSQL e processados pelo Node.js, diminuindo o p95 e o uso de memória da rota, sem mudar a resposta, pois a coluna não é usada no agrupamento nem no JSON.
+- **Evidência anterior:** [plano da consulta antes da mudança](diagnostico/07-vendas-por-dia-antes.txt) seleciona 12.945 linhas para sete dias e estima largura de 296 bytes; o código não lê `observacoes` depois da consulta. A leitura sequencial de `pedidos` será tratada separadamente.
+- **Fonte da hipótese:** [documentação PostgreSQL 16 — listas de seleção](https://www.postgresql.org/docs/16/queries-select-lists.html) explica que a lista `SELECT` determina quais colunas são emitidas como resultado. A redução de latência nesta aplicação é uma hipótese a medir.
+- **Antes:** três execuções de `04-pedidos-status-index`: [163111](resultados/20261106-163111-04-pedidos-status-index/), [163247](resultados/20261106-163247-04-pedidos-status-index/) e [163426](resultados/20261106-163426-04-pedidos-status-index/). O p95 mediano de `/relatorios/vendas-por-dia` foi 10.054,5 ms.
+- **Depois:** pendente.
+- **Status:** mudança em preparação; ainda sem medição posterior.
+- **Conclusão:** pendente.

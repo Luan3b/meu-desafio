@@ -1,0 +1,40 @@
+Diagnostico antes de alterar vendas-por-dia
+Commit: 730fc66
+Consulta do relatorio para um intervalo de 7 dias da carga.
+
+--- Indices atuais ---
+                      List of relations
+ Schema |        Name         | Type  | Owner |    Table     
+--------+---------------------+-------+-------+--------------
+ public | clientes_pkey       | index | loja  | clientes
+ public | idx_itens_pedido    | index | loja  | itens_pedido
+ public | idx_pedidos_cliente | index | loja  | pedidos
+ public | idx_pedidos_status  | index | loja  | pedidos
+ public | itens_pedido_pkey   | index | loja  | itens_pedido
+ public | pedidos_pkey        | index | loja  | pedidos
+ public | produtos_pkey       | index | loja  | produtos
+(7 rows)
+
+
+--- Plano da consulta de vendas-por-dia para 2024-01-01 a 2024-01-07 ---
+                                                                    QUERY PLAN                                                                     
+---------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather  (cost=1000.43..36991.28 rows=6744 width=296) (actual time=0.579..207.677 rows=12945 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   Buffers: shared hit=24475 read=13687
+   ->  Nested Loop  (cost=0.43..35316.88 rows=2810 width=296) (actual time=0.257..173.537 rows=4315 loops=3)
+         Buffers: shared hit=24475 read=13687
+         ->  Parallel Seq Scan on pedidos p  (cost=0.00..25521.50 rows=937 width=288) (actual time=0.212..102.986 rows=1438 loops=3)
+               Filter: ((status <> 'cancelado'::text) AND ((criado_em)::date >= '2024-01-01'::date) AND ((criado_em)::date <= '2024-01-07'::date))
+               Rows Removed by Filter: 165229
+               Buffers: shared hit=7147 read=13687
+         ->  Index Scan using idx_itens_pedido on itens_pedido i  (cost=0.43..10.41 rows=4 width=12) (actual time=0.004..0.024 rows=3 loops=4313)
+               Index Cond: (pedido_id = p.id)
+               Buffers: shared hit=17328
+ Planning:
+   Buffers: shared hit=309
+ Planning Time: 0.821 ms
+ Execution Time: 226.382 ms
+(17 rows)
+
