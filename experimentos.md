@@ -8,3 +8,12 @@
 - **Depois:** três execuções de `01-pool`, com os mesmos parâmetros: [155042](resultados/20261106-155042-01-pool/), [155548](resultados/20261106-155548-01-pool/) e [155750](resultados/20261106-155750-01-pool/). Todas tiveram `0.00%` de erros e terminaram com “Contrato mantido”. Uma execução interrompida, sem verificação de contrato completa, foi descartada.
 - **Status:** aplicada e medida.
 - **Conclusão:** as medianas passaram de 2,39 para 2,86 requisições/s (+19,7%) e de 26.801 ms para 25.227,2 ms no p95 geral (-5,9%). A mediana de CPU média do banco caiu de 100,2% para 99,3%, ainda perto do limite. A memória média da API subiu de 35,2 MiB para 38,3 MiB. Na rota `/clientes/:id/pedidos`, o p95 mediano foi de 28.557,3 ms para 30.030,7 ms; o pool, sozinho, não resolveu esse gargalo. A variação de memória do banco entre execuções foi alta, então não concluímos economia de memória.
+
+## 02 — Consulta única para pedidos do cliente
+
+- **Hipótese:** substituir as consultas sequenciais de pedidos, itens e produtos por uma consulta com `LEFT JOIN` deve reduzir as viagens entre API e banco e o p95 de `/clientes/:id/pedidos`, sem mudar status, campos, valores ou ordem da resposta.
+- **Fonte da hipótese:** [Turcotte, Aldrich e Tip, “reformulator: Automated Refactoring of the N+1 Problem in Database-Backed Applications”, ASE 2022](https://doi.org/10.1145/3551349.3556911). O estudo descreve consultas dentro de loops como N+1 e avalia refatorações que reduzem o número de consultas; os autores também recomendam verificar o comportamento após a transformação. O estudo usa Sequelize, enquanto esta API usa SQL direto, portanto é uma justificativa para testar, não uma previsão do ganho.
+- **Antes:** três execuções da versão com pool: [155042](resultados/20261106-155042-01-pool/), [155548](resultados/20261106-155548-01-pool/) e [155750](resultados/20261106-155750-01-pool/). Na rota `/clientes/:id/pedidos`, o p95 mediano foi 30.030,7 ms.
+- **Depois:** pendente.
+- **Status:** mudança em preparação; ainda sem medição posterior.
+- **Conclusão:** pendente.
