@@ -165,6 +165,7 @@
 
 - **Hipótese:** uma conexão pode reduzir a contenção no banco ao mínimo; o risco é serializar as consultas e aumentar a espera dos usuários.
 - **Referência:** três medições do pool 2: [162302](resultados/20261109-162302-17-pool-2/), [162429](resultados/20261109-162429-17-pool-2/) e [162555](resultados/20261109-162555-17-pool-2/). Medianas: 55,11 req/s, p95 geral 836,7 ms, p95 de `/pedidos` 1.041,5 ms, CPU média do banco 83,8%.
-- **Mudança:** pendente.
-- **Depois:** pendente.
-- **Status:** próximo experimento; código usa pool 2.
+- **Mudança:** `max` do `pg.Pool` reduzido de 2 para 1 em [db.js](api/src/db.js).
+- **Depois:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [162824](resultados/20261109-162824-18-pool-1/), [162951](resultados/20261109-162951-18-pool-1/) e [163117](resultados/20261109-163117-18-pool-1/). Todas com `0.00%` de erros e contrato mantido. Medianas: 62,23 req/s (+12,9% ante 55,11), p95 geral 714,5 ms (-14,6%), p95 de `/pedidos` 849,9 ms (-18,4%), CPU média do banco 73,9% (ante 83,8%), memória média 165,1 MiB (ante 219,4 MiB) e pico mediano 178,0 MiB (ante 396,1 MiB).
+- **Conclusão:** manter pool 1 para o cenário medido. As três rodadas tiveram mais vazão, latências menores e menos CPU do banco que pool 2. O limite serializa consultas da API, então esse ajuste deve ser reavaliado se a quantidade de usuários simultâneos ou a mistura de rotas mudar.
+- **Status:** aplicada, contrato mantido, três medições concluídas e alteração mantida.
