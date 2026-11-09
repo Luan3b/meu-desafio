@@ -1,0 +1,22 @@
+Tamanho da visao e do indice, e plano da consulta top-produtos apos a mudanca.
+
+Timing is on.
+ produtos |  dados  | indices |  total  
+----------+---------+---------+---------
+    19206 | 1688 kB | 608 kB  | 2336 kB
+(1 row)
+
+Time: 41.633 ms
+                                                                            QUERY PLAN                                                                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=0.29..1.04 rows=10 width=57) (actual time=0.015..0.063 rows=10 loops=1)
+   Buffers: shared hit=12
+   ->  Index Scan using idx_resumo_top_produtos_ordem on resumo_top_produtos  (cost=0.29..1436.31 rows=19206 width=57) (actual time=0.011..0.032 rows=10 loops=1)
+         Buffers: shared hit=12
+ Planning:
+   Buffers: shared hit=31 read=1
+ Planning Time: 0.139 ms
+ Execution Time: 0.097 ms
+(8 rows)
+
+Time: 1.458 ms
