@@ -1,0 +1,28 @@
+Plano após a visão materializada, equivalência de todos os dias e espaço utilizado.
+
+                                                      QUERY PLAN                                                       
+-----------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=19.06..19.08 rows=7 width=29) (actual time=0.109..0.122 rows=7 loops=1)
+   Sort Key: dia
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=11
+   ->  Seq Scan on resumo_vendas_por_dia  (cost=0.00..18.96 rows=7 width=29) (actual time=0.012..0.068 rows=7 loops=1)
+         Filter: ((dia >= '2024-03-01'::date) AND (dia <= '2024-03-07'::date))
+         Rows Removed by Filter: 724
+         Buffers: shared hit=8
+ Planning:
+   Buffers: shared hit=50
+ Planning Time: 0.230 ms
+ Execution Time: 0.170 ms
+(12 rows)
+
+ diferencas_entre_agregacao_direta_e_visao 
+-------------------------------------------
+                                         0
+(1 row)
+
+ dias | tamanho 
+------+---------
+  731 | 72 kB
+(1 row)
+

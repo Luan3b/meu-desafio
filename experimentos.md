@@ -175,6 +175,7 @@
 - **Hipótese:** uma visão materializada com quantidade de pedidos distintos, unidades e receita por dia pode substituir a leitura e o envio de milhares de linhas de itens por requisição, preservando o cálculo da rota para este conjunto de dados estático.
 - **Diagnóstico:** [planos da janela de sete dias](diagnostico/23-vendas-diarias-agregacao.txt). A consulta atual retornou 12.951 linhas, usou cerca de 20 mil buffers e levou 170,140 ms nesta amostra. Agregar no momento da chamada levou 234,965 ms; o pré-cálculo deve evitar essa agregação repetida.
 - **Referência:** três medições com pool 1 e código atual: [162824](resultados/20261109-162824-18-pool-1/), [162951](resultados/20261109-162951-18-pool-1/) e [163117](resultados/20261109-163117-18-pool-1/). Medianas: 62,23 req/s, p95 geral 714,5 ms, p95 da rota 642,2 ms, CPU média do banco 73,9%.
-- **Mudança:** pendente.
-- **Depois:** pendente.
-- **Status:** próximo experimento. A visão só representa os dados depois de atualizada; escrita concorrente fica fora do cenário deste desafio.
+- **Mudança:** a visão `resumo_vendas_por_dia` agrega pedidos distintos, unidades e receita; a rota busca apenas os dias solicitados e converte os valores para os mesmos tipos JSON.
+- **Verificação após mudança:** [plano, equivalência e espaço](diagnostico/24-vendas-diarias-depois.txt). A consulta da janela retornou sete linhas, leu oito buffers e levou 0,170 ms; a visão tem 731 dias e ocupa 72 kB. A comparação de todas as datas entre a visão e a agregação direta teve zero diferenças. O primeiro contrato detectou que o driver serializava `DATE` como timestamp; a rota foi corrigida para manter `AAAA-MM-DD`, e então as 42 respostas passaram.
+- **Depois:** medições de carga pendentes.
+- **Status:** mudança aplicada e contrato mantido; três medições de carga pendentes. A visão só representa os dados depois de atualizada; escrita concorrente fica fora do cenário deste desafio.
