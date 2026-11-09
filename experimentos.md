@@ -135,3 +135,18 @@
 - **Depois:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [160829](resultados/20261109-160829-14-paginacao-depois/), [160956](resultados/20261109-160956-14-paginacao-depois/) e [161123](resultados/20261109-161123-14-paginacao-depois/). Todas com `0.00%` de erros e contrato mantido. Medianas: 46,87 req/s (-2,5% ante 48,08), p95 geral 1.193,7 ms (+0,2% ante 1.190,8), p95 de `/pedidos` 2.106,0 ms (-4,5% ante 2.206,1), CPU média do banco 95,6% (ante 94,9%). A dispersão da carga é maior que a diferença observada.
 - **Conclusão:** não manter o índice coberto. O plano da página 1.000 mudou para `Index Only Scan`, mas ainda buscou cada linha no heap; a página 14.000 continuou fazendo varredura e ordenação externa. O resultado de carga não comprova ganho estável que justifique a alteração.
 - **Status:** contrato mantido e medições concluídas; índice removido após resultado inconclusivo, mantendo as evidências do experimento.
+
+## 15 — Avaliar `work_mem` para a ordenação de páginas profundas
+
+- **Hipótese:** elevar `work_mem` pode evitar a ordenação externa da página 14.000 de `/pedidos`.
+- **Diagnóstico:** [comparação em uma sessão](diagnostico/22-pedidos-work-mem-exploratorio.txt). Com 4MB, a ordenação usou 10.008 kB temporários e levou 1.977 ms; com 16MB ainda usou 9.984 kB temporários. Com 64MB, a ordenação coube em memória (33.382 kB), mas levou 1.887 ms nesta amostra. `work_mem` vale por operação de ordenação e conexão; 64MB multiplicado pelas dez conexões possíveis pode superar o limite de memória de 512MB do banco.
+- **Conclusão:** nenhuma configuração persistente foi aplicada. Evitar o arquivo temporário não reduziu o tempo isolado com clareza e elevar o limite pode multiplicar o consumo sob concorrência. Manter o valor padrão de 4MB.
+- **Status:** diagnóstico encerrado sem mudança.
+
+## 16 — Reduzir o pool de conexões de 10 para 5
+
+- **Hipótese:** com o banco perto de um núcleo saturado, limitar a API a cinco consultas simultâneas pode reduzir contenção e melhorar p95 sem aumentar recursos. Pode também diminuir a vazão se as consultas ficarem esperando no pool.
+- **Referência:** as medições de referência do experimento 14 usaram o pool 10: [160204](resultados/20261109-160204-14-paginacao-antes/), [160330](resultados/20261109-160330-14-paginacao-antes/) e [160456](resultados/20261109-160456-14-paginacao-antes/). Medianas: 48,08 req/s, p95 geral 1.190,8 ms, p95 de `/pedidos` 2.206,1 ms.
+- **Mudança:** pendente.
+- **Depois:** pendente.
+- **Status:** próximo experimento; código ainda usa pool 10.

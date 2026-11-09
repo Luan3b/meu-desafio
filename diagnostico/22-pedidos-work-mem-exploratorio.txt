@@ -1,0 +1,48 @@
+Experimento 15: teste exploratório de work_mem para sort da página profunda.
+A conexão usa o parâmetro padrão 4MB e depois 16MB; não altera configuração persistente.
+
+ work_mem 
+----------
+ 4MB
+(1 row)
+
+                                                          QUERY PLAN                                                          
+------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=61094.96..61095.01 rows=20 width=22) (actual time=1975.143..1975.224 rows=20 loops=1)
+   Buffers: shared hit=3997 read=16843, temp read=1251 written=1258
+   ->  Sort  (cost=60395.01..61142.13 rows=298850 width=22) (actual time=1180.775..1594.207 rows=280000 loops=1)
+         Sort Key: criado_em DESC, id DESC
+         Sort Method: external merge  Disk: 10008kB
+         Buffers: shared hit=3997 read=16843, temp read=1251 written=1258
+         ->  Seq Scan on pedidos  (cost=0.00..27084.00 rows=298850 width=22) (actual time=0.041..612.011 rows=300000 loops=1)
+               Filter: (status = 'pago'::text)
+               Rows Removed by Filter: 200000
+               Buffers: shared hit=3991 read=16843
+ Planning:
+   Buffers: shared hit=143
+ Planning Time: 0.623 ms
+ Execution Time: 1977.152 ms
+(14 rows)
+
+SET
+ work_mem 
+----------
+ 16MB
+(1 row)
+
+                                                          QUERY PLAN                                                          
+------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=54962.96..54963.01 rows=20 width=22) (actual time=1893.473..1893.559 rows=20 loops=1)
+   Buffers: shared hit=4023 read=16811, temp read=1248 written=1249
+   ->  Sort  (cost=54263.01..55010.13 rows=298850 width=22) (actual time=1128.422..1523.040 rows=280000 loops=1)
+         Sort Key: criado_em DESC, id DESC
+         Sort Method: external merge  Disk: 9984kB
+         Buffers: shared hit=4023 read=16811, temp read=1248 written=1249
+         ->  Seq Scan on pedidos  (cost=0.00..27084.00 rows=298850 width=22) (actual time=0.013..594.246 rows=300000 loops=1)
+               Filter: (status = 'pago'::text)
+               Rows Removed by Filter: 200000
+               Buffers: shared hit=4023 read=16811
+ Planning Time: 0.163 ms
+ Execution Time: 1896.164 ms
+(12 rows)
+
