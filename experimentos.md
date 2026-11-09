@@ -209,3 +209,11 @@
 - **Depois:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [165704](resultados/20261109-165704-22-pool-2-atual/), [165831](resultados/20261109-165831-22-pool-2-atual/) e [165957](resultados/20261109-165957-22-pool-2-atual/). Todas com `0.00%` de erros e contrato mantido. Medianas: 288,46 req/s (+5,1% ante 274,35), p95 geral 202,0 ms (-2,5%), p95 de `pedidos-por-status` 266,1 ms (+17,8%), CPU média do banco 100,4% (ante 87,9%).
 - **Conclusão:** manter pool 2 por enquanto, pois aumenta a vazão geral e reduz ligeiramente o p95 geral sem aumentar recursos configurados. O banco fica saturado e a rota de pedidos fica mais lenta; acompanhar esse ponto nos próximos testes.
 - **Status:** aplicada, contrato mantido, três medições concluídas. Resultado misto documentado.
+
+## 23 — Aumentar o pool atual de 2 para 3
+
+- **Hipótese:** uma terceira conexão pode elevar a vazão sob a carga de 20 usuários, mas pode manter o banco saturado e piorar a latência de `/pedidos`.
+- **Referência:** três medições com pool 2 e código atual: [165704](resultados/20261109-165704-22-pool-2-atual/), [165831](resultados/20261109-165831-22-pool-2-atual/) e [165957](resultados/20261109-165957-22-pool-2-atual/). Medianas: 288,46 req/s, p95 geral 202,0 ms, p95 de `pedidos-por-status` 266,1 ms, CPU média do banco 100,4%.
+- **Mudança:** pendente.
+- **Depois:** pendente.
+- **Status:** próximo experimento; código usa pool 2.
