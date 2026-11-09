@@ -118,7 +118,7 @@
 
 - **Hipótese:** uma visão materializada com a contagem por status pode substituir a varredura de centenas de milhares de entradas do índice executada em toda chamada de `/pedidos`, preservando o total exato enquanto o conjunto de dados for estático. O custo esperado é mínimo espaço e trabalho na criação do banco. A paginação profunda não será alterada neste experimento.
 - **Evidência anterior:** [planos da contagem e paginação](diagnostico/18-pedidos-count-paginacao.txt). `count(*)` por status levou 933,678 ms numa execução isolada; a página 20.000 levou 3.210 ms e escreveu 11.508 blocos temporários. A carga normal chega até a página 1.000, então a página profunda é um caso separado.
-- **Antes:** pendente; três medições da versão atual.
+- **Antes:** três medições da versão atual com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [154843](resultados/20261109-154843-13-count-status-antes/), [155012](resultados/20261109-155012-13-count-status-antes/) e [155139](resultados/20261109-155139-13-count-status-antes/). Todas tiveram `0.00%` de erros e “Contrato mantido”. Medianas: 43,62 req/s, p95 geral 1.212,2 ms, p95 da rota 2.405,6 ms, CPU média do banco 97,2%.
 - **Mudança:** pendente.
 - **Depois:** pendente.
-- **Status:** diagnóstico e hipótese registrados; referência de carga pendente.
+- **Status:** diagnóstico, hipótese e referência registrados; mudança pendente.
