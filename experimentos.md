@@ -129,7 +129,7 @@
 
 - **Hipótese:** adicionar `cliente_id` como coluna `INCLUDE` ao índice de status permite um plano index-only para a listagem, que só retorna `id`, `cliente_id`, `status` e `criado_em`. Isso pode evitar leituras aleatórias da tabela e deixar o índice utilizável também para offsets profundos. O custo é recriar e aumentar o índice. A resposta e o offset não mudam.
 - **Evidência antes:** [planos atuais](diagnostico/20-pedidos-paginacao-antes.txt). Para `status='pago'`, offset 19.980 levou 71,038 ms e leu 20.101 buffers via index scan. Offset 279.980 levou 1.768,538 ms, fez varredura sequencial, ordenação externa de 10 MB e escreveu 1.258 blocos temporários. O índice atual ocupa 21 MB. A página 14.000 ainda retorna linhas; a página 20.000 excede a quantidade de pedidos pagos.
-- **Antes:** medições de carga pendentes.
+- **Antes:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [160204](resultados/20261109-160204-14-paginacao-antes/), [160330](resultados/20261109-160330-14-paginacao-antes/) e [160456](resultados/20261109-160456-14-paginacao-antes/). Todas com `0.00%` de erros e contrato mantido. Medianas: 48,08 req/s, p95 geral 1.190,8 ms, p95 da rota 2.206,1 ms, CPU média do banco 94,9%.
 - **Mudança:** pendente.
 - **Depois:** pendente.
 - **Status:** hipótese em diagnóstico; nenhuma alteração de aplicação ou banco foi feita.
