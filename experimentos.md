@@ -55,3 +55,10 @@
 - **Depois:** três execuções com 2 CPUs: [111438](resultados/20261109-111438-06-banco-2-cpus/), [111612](resultados/20261109-111612-06-banco-2-cpus/) e [111745](resultados/20261109-111745-06-banco-2-cpus/). Todas tiveram `0.00%` de erros e “Contrato mantido”.
 - **Conclusão:** a mediana subiu de 12,87 para 24,05 requisições/s (+86,9%) e o p95 geral caiu de 4.003,2 para 2.117,8 ms (-47,1%). A CPU média mediana do banco passou de 100,3% para 200,4%, usando os dois núcleos disponíveis. O teste confirma que o limite de 1 CPU restringia a vazão nessa carga: dar mais CPU ao banco quase dobrou o desempenho, com custo correspondente de até mais um núcleo. O pico de memória mediano foi 473,9 MiB, abaixo do limite de 512 MiB. Esta é uma medição local, não uma proposta para deixar o limite aumentado; ele será restaurado para 1 CPU. O banco do Compose permanece publicado na porta local 5433, pois a porta 5432 está ocupada pelo PostgreSQL 18 instalado no host.
 - **Status:** medido; limite de CPU restaurado após o experimento.
+
+## 07 — Diagnóstico de consultas com pg_stat_statements
+
+- **Objetivo:** identificar quais instruções SQL acumulam mais tempo total e maior tempo médio durante a carga padrão, para escolher a próxima otimização com evidência.
+- **Método:** habilitar temporariamente `pg_stat_statements`, zerar as estatísticas antes das execuções, rodar três medições com `VUS=20`, `DURACAO=60s` e `SEMENTE=42`, e salvar as instruções agregadas no diagnóstico. A instrumentação será removida depois da coleta.
+- **Impacto:** recriar o volume PostgreSQL é necessário para aplicar o novo arquivo de inicialização; os dados fictícios são gerados novamente pelo próprio desafio.
+- **Status:** preparação.

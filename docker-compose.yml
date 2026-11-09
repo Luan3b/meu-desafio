@@ -3,6 +3,7 @@ name: desafio-performance
 services:
   banco:
     image: postgres:16.4
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
     shm_size: 256mb
     environment:
       POSTGRES_USER: loja
