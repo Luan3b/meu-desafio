@@ -107,7 +107,7 @@
 
 - **Hipótese:** um índice GIN com `gin_trgm_ops` em `produtos(nome)` pode reduzir as linhas examinadas pela busca `ILIKE '%termo%'`, que atualmente faz varredura sequencial. A rota exige termos com pelo menos três caracteres. O custo esperado é espaço em disco e a extensão `pg_trgm` instalada no banco. A [documentação PostgreSQL 16 de `pg_trgm`](https://www.postgresql.org/docs/16/pgtrgm.html) confirma suporte dos índices trigram para `LIKE` e `ILIKE`.
 - **Evidência anterior:** [plano e índices atuais](diagnostico/16-produtos-busca-antes.txt). A busca por `lumin` examinou 20 mil produtos por varredura sequencial, retornou mil linhas para ordenar e levou 18,682 ms nesta amostra isolada. A extensão está disponível, mas não instalada.
-- **Antes:** pendente; três medições da versão atual, já com o índice de e-mail.
+- **Antes:** três medições da versão atual, já com o índice de e-mail, usando `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [153439](resultados/20261109-153439-12-produtos-trgm-antes/), [153608](resultados/20261109-153608-12-produtos-trgm-antes/) e [153737](resultados/20261109-153737-12-produtos-trgm-antes/). Todas tiveram `0.00%` de erros e “Contrato mantido”. Medianas: 40,14 req/s, p95 geral 1.246,7 ms, p95 da busca 742,6 ms, CPU média do banco 99,1%.
 - **Mudança:** pendente.
 - **Depois:** pendente.
-- **Status:** hipótese e diagnóstico registrados; referência de carga pendente.
+- **Status:** hipótese, diagnóstico e referência registrados; mudança pendente.
