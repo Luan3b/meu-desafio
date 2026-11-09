@@ -102,3 +102,12 @@
 - **Depois:** três medições com os mesmos parâmetros: [152908](resultados/20261109-152908-11-email-depois/), [153035](resultados/20261109-153035-11-email-depois/) e [153202](resultados/20261109-153202-11-email-depois/). Todas tiveram `0.00%` de erros e “Contrato mantido”.
 - **Conclusão:** a mediana subiu de 30,28 para 40,60 req/s (+34,1%) e o p95 geral caiu de 1.400,8 para 1.193,8 ms (-14,8%). O p95 da rota de busca por e-mail caiu de 1.145,5 para 498,4 ms (-56,5%). A CPU média mediana do banco passou de 100,0% para 99,7% enquanto a vazão aumentou. No plano isolado, a consulta deixou a varredura sequencial e passou a usar `Bitmap Index Scan`; buffers lidos caíram de 1.156 para 7 e o tempo medido de 321,559 para 0,271 ms. O índice ocupa 4.792 kB. O índice funcional melhorou a rota e a vazão com custo de disco pequeno para este conjunto de 100 mil clientes.
 - **Status:** aplicada, validada e medida; commits locais separados para hipótese/código e resultados.
+
+## 12 — Índice trigram para busca de produtos
+
+- **Hipótese:** um índice GIN com `gin_trgm_ops` em `produtos(nome)` pode reduzir as linhas examinadas pela busca `ILIKE '%termo%'`, que atualmente faz varredura sequencial. A rota exige termos com pelo menos três caracteres. O custo esperado é espaço em disco e a extensão `pg_trgm` instalada no banco. A [documentação PostgreSQL 16 de `pg_trgm`](https://www.postgresql.org/docs/16/pgtrgm.html) confirma suporte dos índices trigram para `LIKE` e `ILIKE`.
+- **Evidência anterior:** [plano e índices atuais](diagnostico/16-produtos-busca-antes.txt). A busca por `lumin` examinou 20 mil produtos por varredura sequencial, retornou mil linhas para ordenar e levou 18,682 ms nesta amostra isolada. A extensão está disponível, mas não instalada.
+- **Antes:** pendente; três medições da versão atual, já com o índice de e-mail.
+- **Mudança:** pendente.
+- **Depois:** pendente.
+- **Status:** hipótese e diagnóstico registrados; referência de carga pendente.
