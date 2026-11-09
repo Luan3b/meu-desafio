@@ -82,3 +82,11 @@
 - **Depois:** três medições com os mesmos parâmetros: [130035](resultados/20261109-130035-09-filtro-data-depois/), [130202](resultados/20261109-130202-09-filtro-data-depois/) e [130329](resultados/20261109-130329-09-filtro-data-depois/). Todas tiveram `0.00%` de erros e “Contrato mantido”. O plano está em [12-vendas-range-depois.txt](diagnostico/12-vendas-range-depois.txt).
 - **Conclusão:** a mediana subiu de 27,43 para 30,88 req/s (+12,6%); o p95 geral caiu de 1.698,6 para 1.407,5 ms (-17,1%); e o p95 de `vendas-por-dia` caiu de 2.583,6 para 1.854,1 ms (-28,2%). A CPU média mediana do banco passou de 100,8% para 100,3%, ainda no limite. No plano isolado, o filtro passou de `Filter` com cast na coluna e 165.229 linhas removidas por worker para `Index Cond` pelo intervalo de data, com 160 linhas canceladas removidas por worker; o tempo de execução caiu de 245,306 para 138,087 ms (-43,7%). Nenhum índice adicional foi criado. A reescrita melhorou a rota e a vazão sem custo de armazenamento adicional; a CPU geral continua saturada porque a capacidade liberada foi usada para atender mais carga.
 - **Status:** aplicada, validada e medida; sem índice novo.
+
+## 10 — Selecionar somente colunas usadas na listagem de pedidos
+
+- **Hipótese:** trocar `SELECT *` pelas colunas `id, cliente_id, status, criado_em`, usadas na resposta de `/pedidos?status=&pagina=`, reduzirá os dados que o PostgreSQL precisa montar e retornar. A resposta e a ordem não devem mudar. Nenhum índice será alterado neste teste.
+- **Antes:** pendente; três medições da versão atual.
+- **Mudança:** pendente.
+- **Depois:** pendente.
+- **Status:** hipótese registrada; medição de referência pendente.
