@@ -1,0 +1,37 @@
+Experimento 14: planos após recriar o índice coberto.
+
+                                                                      QUERY PLAN                                                                      
+------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=5830.39..5836.23 rows=20 width=22) (actual time=65.485..65.576 rows=20 loops=1)
+   Buffers: shared hit=20003 read=98
+   ->  Index Only Scan using idx_pedidos_status on pedidos  (cost=0.42..87566.71 rows=300100 width=22) (actual time=0.058..39.608 rows=20000 loops=1)
+         Index Cond: (status = 'pago'::text)
+         Heap Fetches: 20000
+         Buffers: shared hit=20003 read=98
+ Planning:
+   Buffers: shared hit=147
+ Planning Time: 0.353 ms
+ Execution Time: 65.640 ms
+(10 rows)
+
+                                                          QUERY PLAN                                                          
+------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=61242.17..61242.22 rows=20 width=22) (actual time=1794.343..1794.424 rows=20 loops=1)
+   Buffers: shared hit=3994 read=16846, temp read=1251 written=1258
+   ->  Sort  (cost=60542.22..61292.47 rows=300100 width=22) (actual time=1033.488..1432.892 rows=280000 loops=1)
+         Sort Key: criado_em DESC, id DESC
+         Sort Method: external merge  Disk: 10008kB
+         Buffers: shared hit=3994 read=16846, temp read=1251 written=1258
+         ->  Seq Scan on pedidos  (cost=0.00..27084.00 rows=300100 width=22) (actual time=0.023..540.513 rows=300000 loops=1)
+               Filter: (status = 'pago'::text)
+               Rows Removed by Filter: 200000
+               Buffers: shared hit=3988 read=16846
+ Planning Time: 0.108 ms
+ Execution Time: 1795.612 ms
+(12 rows)
+
+ indice_status 
+---------------
+ 21 MB
+(1 row)
+
