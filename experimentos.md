@@ -69,6 +69,6 @@
 
 - **Hipótese:** uma visão materializada com receita e unidades agregadas por produto evitará juntar e agregar 1,5 milhão de itens em cada chamada de `/relatorios/top-produtos`. Um índice pela receita decrescente e id deve permitir buscar os primeiros 1 a 50 resultados. O custo esperado é o espaço da visão/índice e o tempo adicional de inicialização para calculá-la. Como a API não tem rotas de escrita, os dados da visão permanecem sincronizados com o conjunto estático do desafio.
 - **Antes:** três medições limpas com 1 CPU no banco, limite de memória inalterado, `VUS=20`, `DURACAO=60s` e `SEMENTE=42`: [120602](resultados/20261109-120602-08-top-produtos-antes/), [120735](resultados/20261109-120735-08-top-produtos-antes/) e [120917](resultados/20261109-120917-08-top-produtos-antes/). Todas tiveram `0.00%` de erros e “Contrato mantido”. Medianas: 13,31 req/s; p95 geral 4.395,0 ms; p95 da rota top produtos 23.701,1 ms; CPU média do banco 100,0%.
-- **Mudança:** pendente.
+- **Mudança:** visão materializada `resumo_top_produtos` e índice pela ordem do relatório; rota lê a visão com o mesmo `ORDER BY` e `LIMIT`.
 - **Depois:** pendente.
-- **Status:** referência registrada; mudança ainda não aplicada.
+- **Status:** alteração preparada; contrato e medições pendentes.
