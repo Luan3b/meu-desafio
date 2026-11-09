@@ -172,7 +172,7 @@ rotas.get('/relatorios/vendas-por-dia', assincrono(async (req, res) => {
   );
 
   const resposta = linhas.map((linha) => ({
-    dia: linha.dia,
+    dia: linha.dia.toISOString().slice(0, 10),
     pedidos: Number(linha.pedidos),
     itens: Number(linha.itens),
     receita_centavos: Number(linha.receita_centavos),
