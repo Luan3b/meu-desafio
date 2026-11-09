@@ -1,0 +1,44 @@
+Experimento 20: comparar o plano da confirmação de cliente e da consulta consolidada.
+
+                                                       QUERY PLAN                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ Index Scan using clientes_pkey on clientes  (cost=0.29..8.31 rows=1 width=60) (actual time=0.018..0.021 rows=1 loops=1)
+   Index Cond: (id = 42)
+   Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=90 read=4
+ Planning Time: 1.103 ms
+ Execution Time: 0.071 ms
+(7 rows)
+
+                                                                       QUERY PLAN                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=102.69..102.72 rows=15 width=65) (actual time=0.592..0.624 rows=10 loops=1)
+   Sort Key: p.criado_em DESC, p.id DESC, i.id
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=66 read=1
+   ->  Nested Loop Left Join  (cost=1.43..102.39 rows=15 width=65) (actual time=0.345..0.565 rows=10 loops=1)
+         Buffers: shared hit=60 read=1
+         ->  Nested Loop Left Join  (cost=1.14..97.81 rows=15 width=38) (actual time=0.326..0.474 rows=10 loops=1)
+               Buffers: shared hit=30 read=1
+               ->  Nested Loop Left Join  (cost=0.71..28.87 rows=5 width=22) (actual time=0.307..0.359 rows=5 loops=1)
+                     Buffers: shared hit=10 read=1
+                     ->  Index Only Scan using clientes_pkey on clientes c  (cost=0.29..4.31 rows=1 width=4) (actual time=0.257..0.260 rows=1 loops=1)
+                           Index Cond: (id = 42)
+                           Heap Fetches: 0
+                           Buffers: shared hit=2 read=1
+                     ->  Index Scan using idx_pedidos_cliente on pedidos p  (cost=0.42..24.51 rows=5 width=22) (actual time=0.043..0.074 rows=5 loops=1)
+                           Index Cond: (cliente_id = 42)
+                           Buffers: shared hit=8
+               ->  Index Scan using idx_itens_pedido on itens_pedido i  (cost=0.43..13.75 rows=4 width=20) (actual time=0.010..0.014 rows=2 loops=5)
+                     Index Cond: (pedido_id = p.id)
+                     Buffers: shared hit=20
+         ->  Index Scan using produtos_pkey on produtos pr  (cost=0.29..0.31 rows=1 width=31) (actual time=0.004..0.004 rows=1 loops=10)
+               Index Cond: (id = i.produto_id)
+               Buffers: shared hit=30
+ Planning:
+   Buffers: shared hit=268
+ Planning Time: 0.805 ms
+ Execution Time: 0.693 ms
+(27 rows)
+

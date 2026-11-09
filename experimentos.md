@@ -180,3 +180,12 @@
 - **Depois:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [163718](resultados/20261109-163718-19-vendas-dia-depois/), [163845](resultados/20261109-163845-19-vendas-dia-depois/) e [164010](resultados/20261109-164010-19-vendas-dia-depois/). Todas com `0.00%` de erros e contrato mantido. Medianas: 197,63 req/s (3,18 vezes a referência de 62,23), p95 geral 308,7 ms (-56,8%), p95 da rota 252,0 ms (-60,8%), CPU média do banco 91,4% (ante 73,9%) e CPU média da API 22,7% (ante 43,9%). A memória média mediana do banco ficou em 167,5 MiB, próxima dos 165,1 MiB da referência.
 - **Conclusão:** manter a visão materializada. Ela reduziu a agregação repetida e o trabalho da API; a vazão subiu bastante, com mais CPU do banco porque ele atende mais requisições. A visão ocupa 72 kB e os totais coincidem com a agregação direta em todos os 731 dias.
 - **Status:** aplicada, contrato mantido, três medições concluídas e alteração mantida. A visão precisa ser atualizada se os dados mudarem; escrita concorrente fica fora do cenário deste desafio.
+
+## 20 — Buscar cliente e pedidos em uma consulta
+
+- **Hipótese:** consolidar a checagem de existência do cliente e a leitura dos pedidos numa consulta pode retirar uma ida ao banco em 20% do tráfego. Cliente inexistente deve continuar em 404; cliente sem pedido deve continuar recebendo `[]`.
+- **Diagnóstico:** [planos atual e consolidado](diagnostico/25-pedidos-cliente-consulta-unica.txt). O plano da consulta atual de cliente levou 0,071 ms; pedidos do cliente, 0,552 ms. O plano consolidado levou 0,693 ms nesta amostra, portanto a vantagem esperada vem de remover uma consulta por requisição, não de reduzir o trabalho do plano.
+- **Referência:** medições atuais após o resumo diário: [163718](resultados/20261109-163718-19-vendas-dia-depois/), [163845](resultados/20261109-163845-19-vendas-dia-depois/) e [164010](resultados/20261109-164010-19-vendas-dia-depois/). Medianas: 197,63 req/s, p95 geral 308,7 ms e p95 da rota `pedidos-do-cliente` 433,8 ms.
+- **Mudança:** pendente.
+- **Depois:** pendente.
+- **Status:** hipótese diagnosticada; sem alteração aplicada ainda.
