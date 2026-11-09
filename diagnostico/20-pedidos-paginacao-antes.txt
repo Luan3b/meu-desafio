@@ -1,0 +1,37 @@
+Experimento 14: planos da paginação com o índice atual (sem mudança).
+O status pago contém 300.000 pedidos; a página 14.000 (offset 279.980) ainda retorna 20 linhas.
+
+                                                                   QUERY PLAN                                                                    
+-------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=5850.44..5856.29 rows=20 width=22) (actual time=70.887..70.981 rows=20 loops=1)
+   Buffers: shared hit=20101
+   ->  Index Scan using idx_pedidos_status on pedidos  (cost=0.42..87906.71 rows=300233 width=22) (actual time=0.062..44.753 rows=20000 loops=1)
+         Index Cond: (status = 'pago'::text)
+         Buffers: shared hit=20101
+ Planning:
+   Buffers: shared hit=143
+ Planning Time: 0.450 ms
+ Execution Time: 71.038 ms
+(9 rows)
+
+                                                          QUERY PLAN                                                          
+------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=61258.73..61258.78 rows=20 width=22) (actual time=1766.558..1766.647 rows=20 loops=1)
+   Buffers: shared hit=4783 read=16057, temp read=1251 written=1258
+   ->  Sort  (cost=60558.78..61309.37 rows=300233 width=22) (actual time=1006.295..1400.742 rows=280000 loops=1)
+         Sort Key: criado_em DESC, id DESC
+         Sort Method: external merge  Disk: 10008kB
+         Buffers: shared hit=4783 read=16057, temp read=1251 written=1258
+         ->  Seq Scan on pedidos  (cost=0.00..27084.00 rows=300233 width=22) (actual time=0.041..513.611 rows=300000 loops=1)
+               Filter: (status = 'pago'::text)
+               Rows Removed by Filter: 200000
+               Buffers: shared hit=4777 read=16057
+ Planning Time: 0.078 ms
+ Execution Time: 1768.538 ms
+(12 rows)
+
+ indice_status 
+---------------
+ 21 MB
+(1 row)
+

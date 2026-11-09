@@ -124,3 +124,12 @@
 - **Depois:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [155605](resultados/20261109-155605-13-count-status-depois/), [155732](resultados/20261109-155732-13-count-status-depois/) e [155857](resultados/20261109-155857-13-count-status-depois/). Todas com `0.00%` de erros e contrato mantido. Medianas: 46,33 req/s (+6,2% ante 43,62), p95 geral 1.209,5 ms (-0,2% ante 1.212,2), p95 de `/pedidos` 2.243,7 ms (-6,7% ante 2.405,6), CPU média do banco 94,0% (ante 97,2%). A variação do p95 da rota foi grande (1.961,3 a 2.719,7 ms), então o resultado de carga é modesto e não permite atribuir todo o ganho à contagem.
 - **Conclusão:** manter a visão nesta versão. A consulta isolada do resumo caiu de 933,678 ms para 0,050 ms e consome 16 kB; na carga mista, o ganho é pequeno porque o plano da página de pedidos e as outras rotas continuam pressionando o único núcleo do banco. A visão é válida para este conjunto de dados estático; em ambiente com escrita, precisa ser atualizada para manter o total exato.
 - **Status:** aplicada, contrato mantido, três medições concluídas e mudança mantida.
+
+## 14 — Tornar a paginação profunda de pedidos coberta pelo índice
+
+- **Hipótese:** adicionar `cliente_id` como coluna `INCLUDE` ao índice de status permite um plano index-only para a listagem, que só retorna `id`, `cliente_id`, `status` e `criado_em`. Isso pode evitar leituras aleatórias da tabela e deixar o índice utilizável também para offsets profundos. O custo é recriar e aumentar o índice. A resposta e o offset não mudam.
+- **Evidência antes:** [planos atuais](diagnostico/20-pedidos-paginacao-antes.txt). Para `status='pago'`, offset 19.980 levou 71,038 ms e leu 20.101 buffers via index scan. Offset 279.980 levou 1.768,538 ms, fez varredura sequencial, ordenação externa de 10 MB e escreveu 1.258 blocos temporários. O índice atual ocupa 21 MB. A página 14.000 ainda retorna linhas; a página 20.000 excede a quantidade de pedidos pagos.
+- **Antes:** medições de carga pendentes.
+- **Mudança:** pendente.
+- **Depois:** pendente.
+- **Status:** hipótese em diagnóstico; nenhuma alteração de aplicação ou banco foi feita.
