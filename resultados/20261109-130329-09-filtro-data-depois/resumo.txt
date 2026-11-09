@@ -1,0 +1,17 @@
+Medição: 09-filtro-data-depois
+Carga: 20 usuários virtuais por 60s
+
+Requisições:        1864
+Requisições/s:      30.58
+Tempo de resposta:  mediana 574.1 ms | p95 1407.5 ms | p99 2351.6 ms
+Erros:              0.00%
+
+Por rota:
+rota                  req       mediana       p95           p99           erros   
+cliente               490       292.1 ms      602.9 ms      710.8 ms      0.0%    
+cliente-por-email     280       822.0 ms      1184.6 ms     1389.7 ms     0.0%    
+pedidos-do-cliente    392       508.0 ms      946.6 ms      1176.1 ms     0.0%    
+pedidos-por-status    256       936.9 ms      2567.2 ms     3673.4 ms     0.0%    
+busca-produtos        276       452.3 ms      798.6 ms      992.3 ms      0.0%    
+vendas-por-dia        139       1134.2 ms     1854.1 ms     2343.3 ms     0.0%    
+top-produtos          31        279.1 ms      623.1 ms      791.4 ms      0.0%    

@@ -1,0 +1,27 @@
+Plano da consulta vendas-por-dia com intervalo semiaberto, sem indice novo.
+
+Timing is on.
+                                                                             QUERY PLAN                                                                             
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather  (cost=1000.85..34229.88 rows=13524 width=20) (actual time=7.110..118.671 rows=12945 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   Buffers: shared hit=20016
+   ->  Nested Loop  (cost=0.85..31877.48 rows=5635 width=20) (actual time=3.857..86.799 rows=4315 loops=3)
+         Buffers: shared hit=20016
+         ->  Parallel Index Only Scan using idx_pedidos_status on pedidos p  (cost=0.42..15830.51 rows=1878 width=12) (actual time=3.796..32.550 rows=1438 loops=3)
+               Index Cond: ((criado_em >= '2024-01-01'::date) AND (criado_em < '2024-01-08'::date))
+               Filter: (status <> 'cancelado'::text)
+               Rows Removed by Filter: 160
+               Heap Fetches: 0
+               Buffers: shared hit=2688
+         ->  Index Scan using idx_itens_pedido on itens_pedido i  (cost=0.43..8.50 rows=4 width=12) (actual time=0.006..0.011 rows=3 loops=4313)
+               Index Cond: (pedido_id = p.id)
+               Buffers: shared hit=17328
+ Planning:
+   Buffers: shared hit=290 read=30
+ Planning Time: 4.401 ms
+ Execution Time: 138.087 ms
+(19 rows)
+
+Time: 149.170 ms
