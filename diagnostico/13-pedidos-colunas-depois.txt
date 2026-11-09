@@ -1,0 +1,17 @@
+Plano da listagem por status com projecao explicita, pagina profunda.
+
+Timing is on.
+                                                                   QUERY PLAN                                                                    
+-------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=4356.99..4362.80 rows=20 width=22) (actual time=99.999..100.097 rows=20 loops=1)
+   Buffers: shared hit=14780 read=317
+   ->  Index Scan using idx_pedidos_status on pedidos  (cost=0.42..87630.38 rows=301717 width=22) (actual time=0.049..79.803 rows=15020 loops=1)
+         Index Cond: (status = 'pago'::text)
+         Buffers: shared hit=14780 read=317
+ Planning:
+   Buffers: shared hit=124 read=18
+ Planning Time: 2.445 ms
+ Execution Time: 100.165 ms
+(9 rows)
+
+Time: 108.375 ms

@@ -87,6 +87,7 @@
 
 - **Hipótese:** trocar `SELECT *` pelas colunas `id, cliente_id, status, criado_em`, usadas na resposta de `/pedidos?status=&pagina=`, reduzirá os dados que o PostgreSQL precisa montar e retornar. A resposta e a ordem não devem mudar. Nenhum índice será alterado neste teste.
 - **Antes:** três medições da versão atual com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [144528](resultados/20261109-144528-10-pedidos-colunas-antes/), [144654](resultados/20261109-144654-10-pedidos-colunas-antes/) e [144822](resultados/20261109-144822-10-pedidos-colunas-antes/). Todas tiveram `0.00%` de erros e “Contrato mantido”. Medianas: 30,40 req/s, p95 geral 1.409,3 ms, p95 da rota 2.536,4 ms, CPU média do banco 99,9%.
-- **Mudança:** consulta agora seleciona explicitamente `id`, `cliente_id`, `status` e `criado_em`; nenhum índice ou outro código foi alterado.
-- **Depois:** pendente.
-- **Status:** mudança commitada; contrato e medições posteriores pendentes.
+- **Mudança:** consulta selecionou explicitamente `id`, `cliente_id`, `status` e `criado_em`; nenhum índice ou outro código foi alterado.
+- **Depois:** três medições: [145036](resultados/20261109-145036-10-pedidos-colunas-depois/), [145210](resultados/20261109-145210-10-pedidos-colunas-depois/) e [145400](resultados/20261109-145400-10-pedidos-colunas-depois/). Todas tiveram `0.00%` de erros e “Contrato mantido”. O plano pós-mudança está em [13-pedidos-colunas-depois.txt](diagnostico/13-pedidos-colunas-depois.txt).
+- **Conclusão:** as medianas passaram de 30,40 para 27,72 req/s (-8,8%) e o p95 geral de 1.409,3 para 1.539,6 ms (+9,2%). O p95 de `pedidos-por-status` passou de 2.536,4 para 8.804,7 ms, com grande variação entre as três execuções; a CPU média mediana do banco caiu de 99,9% para 96,6%, mas junto com a vazão. O plano ficou mais estreito (width 299 para 22), porém ainda percorreu 15.020 entradas no índice. As medições não demonstram ganho de desempenho; a alteração será revertida e não mantida.
+- **Status:** teste concluído; resultados registrados; mudança revertida por falta de ganho medido.
