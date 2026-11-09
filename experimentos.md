@@ -196,6 +196,15 @@
 - **Hipótese:** combinar a leitura da visão de contagens com a página de pedidos pode remover uma ida ao banco em 15% do tráfego, sem mudar total, paginação nem ordenação.
 - **Referência:** três medições atuais após a consolidação da rota de pedidos do cliente: [164527](resultados/20261109-164527-20-cliente-pedidos-depois/), [164656](resultados/20261109-164656-20-cliente-pedidos-depois/) e [164821](resultados/20261109-164821-20-cliente-pedidos-depois/). Medianas gerais: 207,91 req/s e p95 299,5 ms; p95 de `pedidos-por-status`: 488,3 ms.
 - **Planos:** [diagnóstico](diagnostico/26-pedidos-total-e-pagina.txt). Em `status=pago`, página 1.000, a contagem levou 0,047 ms e a página 67,745 ms; a consulta combinada levou 62,881 ms numa amostra.
+- **Mudança:** uma consulta lê a contagem e usa `LEFT JOIN LATERAL` para a página; a linha nula em páginas vazias é filtrada antes de montar a resposta.
+- **Depois:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [165145](resultados/20261109-165145-21-pedidos-unica-consulta/), [165316](resultados/20261109-165316-21-pedidos-unica-consulta/) e [165442](resultados/20261109-165442-21-pedidos-unica-consulta/). Todas com `0.00%` de erros e contrato mantido. Medianas: 274,35 req/s (+32,0% ante 207,91), p95 geral 207,2 ms (-30,8%), p95 de `pedidos-por-status` 225,9 ms (-53,7%), CPU média do banco 87,9% (ante 94,7%).
+- **Conclusão:** manter. A consulta única reduziu o p95 da rota e aumentou a vazão nas três execuções.
+- **Status:** aplicada, contrato mantido, três medições concluídas e alteração mantida.
+
+## 22 — Reavaliar tamanho do pool após reduzir as consultas por requisição
+
+- **Hipótese:** como as rotas agora fazem menos consultas sequenciais, pool 2 pode aumentar concorrência útil em relação ao pool 1 sem recriar a contenção anterior.
+- **Referência:** medições atuais com pool 1: [165145](resultados/20261109-165145-21-pedidos-unica-consulta/), [165316](resultados/20261109-165316-21-pedidos-unica-consulta/) e [165442](resultados/20261109-165442-21-pedidos-unica-consulta/). Medianas: 274,35 req/s, p95 geral 207,2 ms, p95 de `pedidos-por-status` 225,9 ms.
 - **Mudança:** pendente.
 - **Depois:** pendente.
-- **Status:** hipótese diagnosticada; código ainda usa consultas separadas para total e página.
+- **Status:** próximo experimento; código usa pool 1.
