@@ -195,6 +195,7 @@
 
 - **Hipótese:** combinar a leitura da visão de contagens com a página de pedidos pode remover uma ida ao banco em 15% do tráfego, sem mudar total, paginação nem ordenação.
 - **Referência:** três medições atuais após a consolidação da rota de pedidos do cliente: [164527](resultados/20261109-164527-20-cliente-pedidos-depois/), [164656](resultados/20261109-164656-20-cliente-pedidos-depois/) e [164821](resultados/20261109-164821-20-cliente-pedidos-depois/). Medianas gerais: 207,91 req/s e p95 299,5 ms; p95 de `pedidos-por-status`: 488,3 ms.
+- **Planos:** [diagnóstico](diagnostico/26-pedidos-total-e-pagina.txt). Em `status=pago`, página 1.000, a contagem levou 0,047 ms e a página 67,745 ms; a consulta combinada levou 62,881 ms numa amostra.
 - **Mudança:** pendente.
 - **Depois:** pendente.
-- **Status:** próximo experimento; código ainda usa consultas separadas para total e página.
+- **Status:** hipótese diagnosticada; código ainda usa consultas separadas para total e página.
