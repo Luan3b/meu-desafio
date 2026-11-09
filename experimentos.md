@@ -73,3 +73,11 @@
 - **Depois:** três medições com os mesmos parâmetros: [121340](resultados/20261109-121340-08-top-produtos-depois/), [121509](resultados/20261109-121509-08-top-produtos-depois/) e [121638](resultados/20261109-121638-08-top-produtos-depois/). Todas tiveram `0.00%` de erros e “Contrato mantido”. O plano, o tempo isolado e o armazenamento estão em [11-top-produtos-depois.txt](diagnostico/11-top-produtos-depois.txt).
 - **Conclusão:** comparada à referência, a mediana subiu de 13,31 para 26,17 req/s (+96,6%) e o p95 geral caiu de 4.395,0 para 1.891,2 ms (-57,0%). O p95 da rota top produtos caiu de 23.701,1 para 581,5 ms (-97,5%). Uma execução de `EXPLAIN ANALYZE` caiu de 14.693,470 ms na consulta original para 0,097 ms lendo a visão; são amostras isoladas, enquanto as três cargas sustentam a comparação geral. O banco continuou perto de 100% de CPU (medianas 100,0% antes e 100,2% depois), mas processou quase o dobro da vazão; a memória média mediana caiu de 367,1 para 213,3 MiB e o pico mediano de 491,7 para 244,3 MiB. A visão tem 19.206 linhas e ocupa 1.728.512 bytes, o índice 622.592 bytes e o conjunto 2.392.064 bytes (2.336 kB). O tempo adicional de inicialização para gerar a visão não foi medido separadamente. A visão só fica atualizada quando recriamos o banco; isso é adequado para os dados estáticos e a API somente leitura deste desafio, mas precisaria de atualização se houvesse escrita de pedidos ou itens.
 - **Status:** aplicada, validada e medida; commits locais separados para hipótese/código e resultados.
+
+## 09 — Usar intervalo direto de timestamp no relatório diário
+
+- **Hipótese:** substituir `p.criado_em::date BETWEEN $1 AND $2` pelo intervalo semiaberto `p.criado_em >= $1::date AND p.criado_em < ($2::date + 1)` pode reduzir o trabalho do filtro e permitir uso eficiente de um índice por data em um experimento futuro. O tipo da coluna é `timestamp` sem fuso. Esta etapa altera somente a consulta da rota; qualquer índice será avaliado separadamente.
+- **Antes:** pendente; três medições limpas com a configuração atual.
+- **Mudança:** pendente.
+- **Depois:** pendente.
+- **Status:** hipótese registrada; medição de referência pendente.
