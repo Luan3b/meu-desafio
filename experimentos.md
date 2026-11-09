@@ -107,7 +107,8 @@
 
 - **Hipótese:** um índice GIN com `gin_trgm_ops` em `produtos(nome)` pode reduzir as linhas examinadas pela busca `ILIKE '%termo%'`, que atualmente faz varredura sequencial. A rota exige termos com pelo menos três caracteres. O custo esperado é espaço em disco e a extensão `pg_trgm` instalada no banco. A [documentação PostgreSQL 16 de `pg_trgm`](https://www.postgresql.org/docs/16/pgtrgm.html) confirma suporte dos índices trigram para `LIKE` e `ILIKE`.
 - **Evidência anterior:** [plano e índices atuais](diagnostico/16-produtos-busca-antes.txt). A busca por `lumin` examinou 20 mil produtos por varredura sequencial, retornou mil linhas para ordenar e levou 18,682 ms nesta amostra isolada. A extensão está disponível, mas não instalada.
+- **Plano e custo depois:** [plano com GIN](diagnostico/17-produtos-busca-depois.txt) usa `Bitmap Index Scan` em `idx_produtos_nome_trgm`; a execução isolada levou 6,315 ms. O índice ocupa 1.144 kB. O contrato passou nas 42 respostas.
 - **Antes:** três medições da versão atual, já com o índice de e-mail, usando `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [153439](resultados/20261109-153439-12-produtos-trgm-antes/), [153608](resultados/20261109-153608-12-produtos-trgm-antes/) e [153737](resultados/20261109-153737-12-produtos-trgm-antes/). Todas tiveram `0.00%` de erros e “Contrato mantido”. Medianas: 40,14 req/s, p95 geral 1.246,7 ms, p95 da busca 742,6 ms, CPU média do banco 99,1%.
 - **Mudança:** novo arquivo SQL instala `pg_trgm` e cria índice GIN `idx_produtos_nome_trgm` em `produtos(nome)`; nenhuma rota ou resposta foi alterada.
 - **Depois:** pendente.
-- **Status:** mudança commitada; banco será recriado antes da verificação de contrato.
+- **Status:** mudança aplicada e contrato mantido; medições de carga posteriores pendentes.
