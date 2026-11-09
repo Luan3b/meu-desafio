@@ -63,24 +63,25 @@ rotas.get('/clientes/:id/pedidos', assincrono(async (req, res) => {
   const id = inteiroPositivo(req.params.id);
   if (id === null) return res.status(400).json({ erro: 'id invalido' });
 
-  const clientes = await consultar('SELECT * FROM clientes WHERE id = $1', [id]);
-  if (clientes.length === 0) return res.status(404).json({ erro: 'cliente nao encontrado' });
-
   const linhas = await consultar(
     `SELECT p.id, p.status, p.criado_em,
+            i.id AS item_id,
             i.produto_id, pr.nome AS produto_nome,
             i.quantidade, i.preco_unitario_centavos
-       FROM pedidos p
+       FROM clientes c
+       LEFT JOIN pedidos p ON p.cliente_id = c.id
        LEFT JOIN itens_pedido i ON i.pedido_id = p.id
        LEFT JOIN produtos pr ON pr.id = i.produto_id
-      WHERE p.cliente_id = $1
+      WHERE c.id = $1
       ORDER BY p.criado_em DESC, p.id DESC, i.id`,
     [id],
   );
+  if (linhas.length === 0) return res.status(404).json({ erro: 'cliente nao encontrado' });
 
   const resposta = [];
   let atual = null;
   for (const linha of linhas) {
+    if (linha.id === null) continue;
     if (atual === null || atual.id !== linha.id) {
       atual = {
         id: linha.id,
