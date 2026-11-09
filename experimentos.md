@@ -214,6 +214,7 @@
 
 - **Hipótese:** uma terceira conexão pode elevar a vazão sob a carga de 20 usuários, mas pode manter o banco saturado e piorar a latência de `/pedidos`.
 - **Referência:** três medições com pool 2 e código atual: [165704](resultados/20261109-165704-22-pool-2-atual/), [165831](resultados/20261109-165831-22-pool-2-atual/) e [165957](resultados/20261109-165957-22-pool-2-atual/). Medianas: 288,46 req/s, p95 geral 202,0 ms, p95 de `pedidos-por-status` 266,1 ms, CPU média do banco 100,4%.
-- **Mudança:** pendente.
-- **Depois:** pendente.
-- **Status:** próximo experimento; código usa pool 2.
+- **Mudança:** pool aumentado de 2 para 3 conexões no `pg.Pool`.
+- **Depois:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [202436](resultados/20261109-202436-23-pool-3/), [202604](resultados/20261109-202604-23-pool-3/) e [202731](resultados/20261109-202731-23-pool-3/). Todas com `0.00%` de erros e contrato mantido. Medianas: 218,43 req/s (-24,3% ante 288,46), p95 geral 279,9 ms (+38,6%), p95 de `pedidos-por-status` 402,1 ms (+51,1%), CPU média do banco 100,2% (praticamente igual aos 100,4% do pool 2).
+- **Conclusão:** rejeitar pool 3. A vazão caiu e as latências aumentaram sem reduzir a saturação do banco. O código será restaurado para pool 2.
+- **Status:** teste concluído; pool 3 removido após resultado pior.
