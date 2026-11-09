@@ -77,7 +77,7 @@
 ## 09 — Usar intervalo direto de timestamp no relatório diário
 
 - **Hipótese:** substituir `p.criado_em::date BETWEEN $1 AND $2` pelo intervalo semiaberto `p.criado_em >= $1::date AND p.criado_em < ($2::date + 1)` pode reduzir o trabalho do filtro e permitir uso eficiente de um índice por data em um experimento futuro. O tipo da coluna é `timestamp` sem fuso. Esta etapa altera somente a consulta da rota; qualquer índice será avaliado separadamente.
-- **Antes:** pendente; três medições limpas com a configuração atual.
+- **Antes:** três medições com a configuração atual e `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [125512](resultados/20261109-125512-09-filtro-data-antes/), [125640](resultados/20261109-125640-09-filtro-data-antes/) e [125808](resultados/20261109-125808-09-filtro-data-antes/). Todas tiveram `0.00%` de erros e “Contrato mantido”. Medianas: 27,43 req/s, p95 geral 1.698,6 ms, p95 da rota 2.583,6 ms, CPU média do banco 100,8%.
 - **Mudança:** pendente.
 - **Depois:** pendente.
-- **Status:** hipótese registrada; medição de referência pendente.
+- **Status:** hipótese e referência registradas; mudança pendente.
