@@ -115,20 +115,26 @@ rotas.get('/pedidos', assincrono(async (req, res) => {
   const pagina = req.query.pagina === undefined ? 1 : inteiroPositivo(req.query.pagina);
   if (pagina === null) return res.status(400).json({ erro: 'pagina invalida' });
 
-  const [contagem] = await consultar(
-    'SELECT total FROM resumo_pedidos_por_status WHERE status = $1',
-    [status],
-  );
   const linhas = await consultar(
-    'SELECT * FROM pedidos WHERE status = $1 ORDER BY criado_em DESC, id DESC LIMIT $2 OFFSET $3',
+    `SELECT resumo.total, pagina.id, pagina.cliente_id, pagina.status, pagina.criado_em
+       FROM resumo_pedidos_por_status resumo
+       LEFT JOIN LATERAL (
+         SELECT id, cliente_id, status, criado_em
+           FROM pedidos
+          WHERE status = $1
+          ORDER BY criado_em DESC, id DESC
+          LIMIT $2 OFFSET $3
+       ) pagina ON TRUE
+      WHERE resumo.status = $1
+      ORDER BY pagina.criado_em DESC, pagina.id DESC`,
     [status, TAMANHO_PAGINA, (pagina - 1) * TAMANHO_PAGINA],
   );
 
   res.json({
     pagina,
     tamanho_pagina: TAMANHO_PAGINA,
-    total: Number(contagem.total),
-    pedidos: linhas.map((linha) => ({
+    total: Number(linhas[0].total),
+    pedidos: linhas.filter((linha) => linha.id !== null).map((linha) => ({
       id: linha.id,
       cliente_id: linha.cliente_id,
       status: linha.status,
