@@ -96,7 +96,8 @@
 
 - **Hipótese:** um índice em `lower(email)` deve substituir a varredura sequencial de 100 mil clientes na rota `/clientes?email=` por uma busca no índice, preservando a comparação sem diferenciar maiúsculas/minúsculas e a ordenação por `id`.
 - **Evidência anterior:** [plano da consulta e índices atuais](diagnostico/14-clientes-email-antes.txt). A consulta leu 1.156 buffers, examinou 100 mil linhas e levou 321,559 ms nesta execução isolada; não havia índice funcional em `lower(email)`.
+- **Plano e custo depois:** [plano com o índice](diagnostico/15-clientes-email-depois.txt) usa `Bitmap Index Scan` e leu 7 buffers na amostra; a execução isolada levou 0,271 ms. O índice ocupa 4.792 kB.
 - **Antes:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [152242](resultados/20261109-152242-11-email-antes/), [152411](resultados/20261109-152411-11-email-antes/) e [152540](resultados/20261109-152540-11-email-antes/). Todas tiveram `0.00%` de erros e “Contrato mantido”. Medianas: 30,28 req/s, p95 geral 1.400,8 ms, p95 da rota 1.145,5 ms, CPU média do banco 100,0%.
 - **Mudança:** novo índice `idx_clientes_email_lower` em `lower(email)`; nenhuma rota ou resposta foi alterada.
 - **Depois:** pendente.
-- **Status:** mudança commitada; banco será recriado antes da verificação de contrato.
+- **Status:** mudança aplicada e contrato mantido; medições de carga posteriores pendentes.
