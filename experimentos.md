@@ -113,3 +113,12 @@
 - **Depois:** três medições com os mesmos parâmetros: [154124](resultados/20261109-154124-12-produtos-trgm-depois/), [154255](resultados/20261109-154255-12-produtos-trgm-depois/) e [154510](resultados/20261109-154510-12-produtos-trgm-depois/). Todas tiveram `0.00%` de erros e “Contrato mantido”.
 - **Conclusão:** a mediana da rota `busca-produtos` caiu de 401,5 para 234,5 ms (-41,6%) e seu p95 de 742,6 para 589,6 ms (-20,6%). A vazão geral subiu de 40,14 para 41,81 req/s (+4,2%), e a CPU média mediana do banco caiu de 99,1% para 95,5%. O p95 geral, porém, subiu de 1.246,7 para 1.399,4 ms (+12,2%), com variação entre rotas; portanto, não houve melhora geral de latência demonstrada. O índice GIN em `produtos(nome)` ocupa 1.144 kB e o plano de busca usa o índice. O ganho é localizado: rota mais rápida e menos CPU média, com custo pequeno de disco; p95 geral permanece inconclusivo/pior nestas três rodadas.
 - **Status:** aplicada, validada e medida; índice mantido pelo ganho na rota-alvo e redução de CPU, registrando a piora do p95 geral como limitação.
+
+## 13 — Pré-computar a contagem exata de pedidos por status
+
+- **Hipótese:** uma visão materializada com a contagem por status pode substituir a varredura de centenas de milhares de entradas do índice executada em toda chamada de `/pedidos`, preservando o total exato enquanto o conjunto de dados for estático. O custo esperado é mínimo espaço e trabalho na criação do banco. A paginação profunda não será alterada neste experimento.
+- **Evidência anterior:** [planos da contagem e paginação](diagnostico/18-pedidos-count-paginacao.txt). `count(*)` por status levou 933,678 ms numa execução isolada; a página 20.000 levou 3.210 ms e escreveu 11.508 blocos temporários. A carga normal chega até a página 1.000, então a página profunda é um caso separado.
+- **Antes:** pendente; três medições da versão atual.
+- **Mudança:** pendente.
+- **Depois:** pendente.
+- **Status:** diagnóstico e hipótese registrados; referência de carga pendente.

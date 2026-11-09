@@ -1,0 +1,65 @@
+Planos das consultas usadas por GET /pedidos com status pago.
+Pagina 1000 representa o maximo da carga; pagina 20000 mostra custo extremo permitido pela rota.
+
+Timing is on.
+=== COUNT por status ===
+                                                                                 QUERY PLAN                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=11327.09..11327.10 rows=1 width=8) (actual time=929.257..933.571 rows=1 loops=1)
+   Buffers: shared hit=1552
+   ->  Gather  (cost=11326.88..11327.09 rows=2 width=8) (actual time=928.885..933.550 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=1552
+         ->  Partial Aggregate  (cost=10326.88..10326.89 rows=1 width=8) (actual time=925.806..925.812 rows=1 loops=3)
+               Buffers: shared hit=1552
+               ->  Parallel Index Only Scan using idx_pedidos_status on pedidos  (cost=0.42..10014.85 rows=124812 width=0) (actual time=0.057..461.671 rows=100000 loops=3)
+                     Index Cond: (status = 'pago'::text)
+                     Heap Fetches: 174
+                     Buffers: shared hit=1552
+ Planning:
+   Buffers: shared hit=96 read=22
+ Planning Time: 3.963 ms
+ Execution Time: 933.678 ms
+(16 rows)
+
+Time: 945.993 ms
+=== Pagina 1000 (offset 19980), SELECT * atual ===
+                                                                    QUERY PLAN                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=5841.60..5847.45 rows=20 width=299) (actual time=77.768..77.859 rows=20 loops=1)
+   Buffers: shared hit=20001 read=100
+   ->  Index Scan using idx_pedidos_status on pedidos  (cost=0.42..87574.21 rows=299550 width=299) (actual time=0.038..51.401 rows=20000 loops=1)
+         Index Cond: (status = 'pago'::text)
+         Buffers: shared hit=20001 read=100
+ Planning:
+   Buffers: shared hit=33 read=2
+ Planning Time: 0.512 ms
+ Execution Time: 77.914 ms
+(9 rows)
+
+Time: 79.933 ms
+=== Pagina 20000 (offset 399980), SELECT * atual ===
+                                                                  QUERY PLAN                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=81620.98..81621.10 rows=1 width=299) (actual time=3158.462..3167.073 rows=0 loops=1)
+   Buffers: shared hit=10199 read=10761, temp read=11475 written=11508
+   ->  Gather Merge  (cost=52496.15..81620.98 rows=249624 width=299) (actual time=1325.577..2681.656 rows=300000 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=10199 read=10761, temp read=11475 written=11508
+         ->  Sort  (cost=51496.13..51808.16 rows=124812 width=299) (actual time=1314.701..1539.420 rows=100000 loops=3)
+               Sort Key: criado_em DESC, id DESC
+               Sort Method: external merge  Disk: 30488kB
+               Buffers: shared hit=10199 read=10761, temp read=11475 written=11508
+               Worker 0:  Sort Method: external merge  Disk: 30632kB
+               Worker 1:  Sort Method: external merge  Disk: 30680kB
+               ->  Parallel Seq Scan on pedidos  (cost=0.00..23438.17 rows=124812 width=299) (actual time=0.031..757.917 rows=100000 loops=3)
+                     Filter: (status = 'pago'::text)
+                     Rows Removed by Filter: 66667
+                     Buffers: shared hit=10073 read=10761
+ Planning Time: 0.135 ms
+ Execution Time: 3209.520 ms
+(18 rows)
+
+Time: 3210.352 ms (00:03.210)
