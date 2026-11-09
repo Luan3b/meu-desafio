@@ -1,0 +1,29 @@
+Resumo exato por status e plano apos visao materializada.
+
+Timing is on.
+  status   | total  
+-----------+--------
+ cancelado |  50000
+ entregue  | 125000
+ pago      | 300000
+ pendente  |  25000
+(4 rows)
+
+Time: 4.113 ms
+                                                     QUERY PLAN                                                     
+--------------------------------------------------------------------------------------------------------------------
+ Seq Scan on resumo_pedidos_por_status  (cost=0.00..25.00 rows=6 width=8) (actual time=0.010..0.014 rows=1 loops=1)
+   Filter: (status = 'pago'::text)
+   Rows Removed by Filter: 3
+   Buffers: shared hit=1
+ Planning Time: 0.071 ms
+ Execution Time: 0.050 ms
+(6 rows)
+
+Time: 2.117 ms
+ tamanho_visao 
+---------------
+ 16 kB
+(1 row)
+
+Time: 1.546 ms
