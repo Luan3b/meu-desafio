@@ -169,3 +169,12 @@
 - **Depois:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [162824](resultados/20261109-162824-18-pool-1/), [162951](resultados/20261109-162951-18-pool-1/) e [163117](resultados/20261109-163117-18-pool-1/). Todas com `0.00%` de erros e contrato mantido. Medianas: 62,23 req/s (+12,9% ante 55,11), p95 geral 714,5 ms (-14,6%), p95 de `/pedidos` 849,9 ms (-18,4%), CPU média do banco 73,9% (ante 83,8%), memória média 165,1 MiB (ante 219,4 MiB) e pico mediano 178,0 MiB (ante 396,1 MiB).
 - **Conclusão:** manter pool 1 para o cenário medido. As três rodadas tiveram mais vazão, latências menores e menos CPU do banco que pool 2. O limite serializa consultas da API, então esse ajuste deve ser reavaliado se a quantidade de usuários simultâneos ou a mistura de rotas mudar.
 - **Status:** aplicada, contrato mantido, três medições concluídas e alteração mantida.
+
+## 19 — Pré-computar as vendas agregadas por dia
+
+- **Hipótese:** uma visão materializada com quantidade de pedidos distintos, unidades e receita por dia pode substituir a leitura e o envio de milhares de linhas de itens por requisição, preservando o cálculo da rota para este conjunto de dados estático.
+- **Diagnóstico:** [planos da janela de sete dias](diagnostico/23-vendas-diarias-agregacao.txt). A consulta atual retornou 12.951 linhas, usou cerca de 20 mil buffers e levou 170,140 ms nesta amostra. Agregar no momento da chamada levou 234,965 ms; o pré-cálculo deve evitar essa agregação repetida.
+- **Referência:** três medições com pool 1 e código atual: [162824](resultados/20261109-162824-18-pool-1/), [162951](resultados/20261109-162951-18-pool-1/) e [163117](resultados/20261109-163117-18-pool-1/). Medianas: 62,23 req/s, p95 geral 714,5 ms, p95 da rota 642,2 ms, CPU média do banco 73,9%.
+- **Mudança:** pendente.
+- **Depois:** pendente.
+- **Status:** próximo experimento. A visão só representa os dados depois de atualizada; escrita concorrente fica fora do cenário deste desafio.

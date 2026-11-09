@@ -1,0 +1,58 @@
+Diagnóstico da rota vendas-por-dia no código atual e do plano agregado candidato.
+A carga escolhe uma janela de 7 dias; amostra fixa: 2024-03-01 até 2024-03-07.
+
+                                                                             QUERY PLAN                                                                             
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather  (cost=1000.85..33942.35 rows=13197 width=20) (actual time=8.817..150.424 rows=12951 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   Buffers: shared hit=19928 read=89
+   ->  Nested Loop  (cost=0.85..31622.65 rows=5499 width=20) (actual time=5.425..130.572 rows=4317 loops=3)
+         Buffers: shared hit=19928 read=89
+         ->  Parallel Index Only Scan using idx_pedidos_status on pedidos p  (cost=0.42..15826.01 rows=1833 width=12) (actual time=5.356..31.261 rows=1438 loops=3)
+               Index Cond: ((criado_em >= '2024-03-01'::date) AND (criado_em < '2024-03-08'::date))
+               Filter: (status <> 'cancelado'::text)
+               Rows Removed by Filter: 159
+               Heap Fetches: 0
+               Buffers: shared hit=2688
+         ->  Index Scan using idx_itens_pedido on itens_pedido i  (cost=0.43..8.58 rows=4 width=12) (actual time=0.021..0.026 rows=3 loops=4315)
+               Index Cond: (pedido_id = p.id)
+               Buffers: shared hit=17240 read=89
+ Planning:
+   Buffers: shared hit=289 read=32
+ Planning Time: 4.212 ms
+ Execution Time: 170.140 ms
+(19 rows)
+
+                                                                                   QUERY PLAN                                                                                   
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=32978.05..34779.00 rows=4399 width=52) (actual time=191.841..234.502 rows=7 loops=1)
+   Group Key: ((p.criado_em)::date)
+   Buffers: shared hit=20047
+   ->  Gather Merge  (cost=32978.05..34515.06 rows=13197 width=16) (actual time=181.300..213.247 rows=12951 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=20047
+         ->  Sort  (cost=31978.02..31991.77 rows=5499 width=16) (actual time=109.021..138.306 rows=4317 loops=3)
+               Sort Key: ((p.criado_em)::date), p.id
+               Sort Method: quicksort  Memory: 388kB
+               Buffers: shared hit=20047
+               Worker 0:  Sort Method: quicksort  Memory: 256kB
+               Worker 1:  Sort Method: quicksort  Memory: 247kB
+               ->  Nested Loop  (cost=0.85..31636.40 rows=5499 width=16) (actual time=1.882..101.088 rows=4317 loops=3)
+                     Buffers: shared hit=20017
+                     ->  Parallel Index Only Scan using idx_pedidos_status on pedidos p  (cost=0.42..15826.01 rows=1833 width=12) (actual time=1.836..31.023 rows=1438 loops=3)
+                           Index Cond: ((criado_em >= '2024-03-01'::date) AND (criado_em < '2024-03-08'::date))
+                           Filter: (status <> 'cancelado'::text)
+                           Rows Removed by Filter: 159
+                           Heap Fetches: 0
+                           Buffers: shared hit=2688
+                     ->  Index Scan using idx_itens_pedido on itens_pedido i  (cost=0.43..8.58 rows=4 width=12) (actual time=0.018..0.023 rows=3 loops=4315)
+                           Index Cond: (pedido_id = p.id)
+                           Buffers: shared hit=17329
+ Planning:
+   Buffers: shared hit=36 read=6
+ Planning Time: 1.126 ms
+ Execution Time: 234.965 ms
+(28 rows)
+
