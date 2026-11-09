@@ -47,3 +47,10 @@
 - **Depois:** três execuções de `05-vendas-sem-observacoes`: [165357](resultados/20261106-165357-05-vendas-sem-observacoes/), [165536](resultados/20261106-165536-05-vendas-sem-observacoes/) e [165713](resultados/20261106-165713-05-vendas-sem-observacoes/). Todas tiveram `0.00%` de erros e “Contrato mantido”. O plano depois da mudança está em [08-vendas-por-dia-depois.txt](diagnostico/08-vendas-por-dia-depois.txt).
 - **Status:** aplicada e medida.
 - **Conclusão:** comparada à versão anterior, a mediana passou de 10,13 para 12,87 requisições/s (+27,1%); o p95 geral caiu de 6.202 ms para 4.003,2 ms (-35,5%); e o p95 de `/relatorios/vendas-por-dia` caiu de 10.054,5 ms para 5.451,9 ms (-45,8%). O plano mudou de leitura sequencial para leitura somente do índice `idx_pedidos_status`; a largura estimada das linhas caiu de 296 para 20 bytes. A execução do `EXPLAIN ANALYZE` caiu de 226 para 194 ms, mas é uma amostra única e não substitui a comparação de carga. A CPU do banco permaneceu perto de 100%; o pico mediano de memória do banco variou de 478,3 para 497,5 MiB, enquanto a memória média da API caiu de 43,9 para 32,0 MiB. A mudança melhorou a rota sem criar índice adicional; o filtro por data ainda percorre o índice e merece um experimento separado.
+
+## 06 — Diagnóstico temporário com 2 CPUs no banco
+
+- **Hipótese:** se a CPU do banco for o gargalo principal na carga atual, duplicar temporariamente seu limite de 1 para 2 CPUs deve aumentar a vazão e reduzir a latência. O teste mantém memória, API, código, dados e parâmetros da carga iguais. O custo operacional também dobra o limite de CPU do banco durante este diagnóstico.
+- **Antes:** três execuções de `05-vendas-sem-observacoes`: [165357](resultados/20261106-165357-05-vendas-sem-observacoes/), [165536](resultados/20261106-165536-05-vendas-sem-observacoes/) e [165713](resultados/20261106-165713-05-vendas-sem-observacoes/), com limite de banco de 1 CPU.
+- **Depois:** pendente. O limite de 2 CPUs será temporário; após as medições, será restaurado para 1 CPU.
+- **Status:** em medição.
