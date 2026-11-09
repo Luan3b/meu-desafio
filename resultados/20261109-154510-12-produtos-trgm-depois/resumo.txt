@@ -1,0 +1,17 @@
+Medição: 12-produtos-trgm-depois
+Carga: 20 usuários virtuais por 60s
+
+Requisições:        2533
+Requisições/s:      41.81
+Tempo de resposta:  mediana 309.8 ms | p95 1399.4 ms | p99 2420.7 ms
+Erros:              0.00%
+
+Por rota:
+rota                  req       mediana       p95           p99           erros   
+cliente               644       215.3 ms      592.8 ms      811.1 ms      0.0%    
+cliente-por-email     370       211.3 ms      525.2 ms      726.2 ms      0.0%    
+pedidos-do-cliente    535       408.4 ms      1015.1 ms     1420.9 ms     0.0%    
+pedidos-por-status    356       802.1 ms      2299.9 ms     3346.6 ms     0.0%    
+busca-produtos        386       218.1 ms      589.6 ms      816.3 ms      0.0%    
+vendas-por-dia        198       1103.1 ms     2534.5 ms     3509.7 ms     0.0%    
+top-produtos          44        195.0 ms      509.0 ms      779.3 ms      0.0%    
