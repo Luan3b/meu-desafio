@@ -87,6 +87,6 @@
 
 - **Hipótese:** trocar `SELECT *` pelas colunas `id, cliente_id, status, criado_em`, usadas na resposta de `/pedidos?status=&pagina=`, reduzirá os dados que o PostgreSQL precisa montar e retornar. A resposta e a ordem não devem mudar. Nenhum índice será alterado neste teste.
 - **Antes:** três medições da versão atual com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [144528](resultados/20261109-144528-10-pedidos-colunas-antes/), [144654](resultados/20261109-144654-10-pedidos-colunas-antes/) e [144822](resultados/20261109-144822-10-pedidos-colunas-antes/). Todas tiveram `0.00%` de erros e “Contrato mantido”. Medianas: 30,40 req/s, p95 geral 1.409,3 ms, p95 da rota 2.536,4 ms, CPU média do banco 99,9%.
-- **Mudança:** pendente.
+- **Mudança:** consulta agora seleciona explicitamente `id`, `cliente_id`, `status` e `criado_em`; nenhum índice ou outro código foi alterado.
 - **Depois:** pendente.
-- **Status:** hipótese e referência registradas; mudança pendente.
+- **Status:** mudança commitada; contrato e medições posteriores pendentes.
