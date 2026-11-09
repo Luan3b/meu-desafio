@@ -5,7 +5,7 @@ const pool = new Pool({
   port: Number(process.env.DB_PORT || 5432),
   user: process.env.DB_USER || 'loja',
   database: process.env.DB_NAME || 'loja',
-  max: 2,
+  max: 3,
 });
 
 async function consultar(sql, parametros = []) {
