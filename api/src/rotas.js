@@ -116,7 +116,7 @@ rotas.get('/pedidos', assincrono(async (req, res) => {
 
   const [contagem] = await consultar('SELECT count(*) AS total FROM pedidos WHERE status = $1', [status]);
   const linhas = await consultar(
-    'SELECT id, cliente_id, status, criado_em FROM pedidos WHERE status = $1 ORDER BY criado_em DESC, id DESC LIMIT $2 OFFSET $3',
+    'SELECT * FROM pedidos WHERE status = $1 ORDER BY criado_em DESC, id DESC LIMIT $2 OFFSET $3',
     [status, TAMANHO_PAGINA, (pagina - 1) * TAMANHO_PAGINA],
   );
 
