@@ -204,7 +204,7 @@ rotas.get('/relatorios/top-produtos', assincrono(async (req, res) => {
   );
 
   res.json(linhas.map((linha) => ({
-    produto_id: linha.id,
+    produto_id: linha.produto_id,
     nome: linha.nome,
     categoria: linha.categoria,
     unidades: Number(linha.unidades),
