@@ -156,6 +156,15 @@
 
 - **Hipótese:** duas conexões podem reduzir mais a contenção no banco de um núcleo; o risco é elevar a fila interna do pool e reduzir vazão.
 - **Referência:** três medições do pool 5: [161705](resultados/20261109-161705-16-pool-5/), [161836](resultados/20261109-161836-16-pool-5/) e [162001](resultados/20261109-162001-16-pool-5/). Medianas: 50,35 req/s, p95 geral 1.005,5 ms, p95 de `/pedidos` 1.508,4 ms, CPU média do banco 91,7%.
+- **Mudança:** `max` do `pg.Pool` reduzido de 5 para 2 em [db.js](api/src/db.js).
+- **Depois:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [162302](resultados/20261109-162302-17-pool-2/), [162429](resultados/20261109-162429-17-pool-2/) e [162555](resultados/20261109-162555-17-pool-2/). Todas com `0.00%` de erros e contrato mantido. Medianas: 55,11 req/s (+9,5% ante 50,35), p95 geral 836,7 ms (-16,8%), p95 de `/pedidos` 1.041,5 ms (-30,9%), CPU média do banco 83,8% (ante 91,7%), memória média 219,4 MiB (ante 367,6 MiB) e pico mediano 396,1 MiB (ante 487,9 MiB).
+- **Conclusão:** manter pool 2. A vazão aumentou e os p95, CPU e memória medidos caíram nas três rodadas em comparação ao pool 5.
+- **Status:** aplicada, contrato mantido, três medições concluídas e alteração mantida. Próxima hipótese: testar pool 1 para descobrir se reduzir a contenção compensa a fila de espera.
+
+## 18 — Reduzir o pool de conexões de 2 para 1
+
+- **Hipótese:** uma conexão pode reduzir a contenção no banco ao mínimo; o risco é serializar as consultas e aumentar a espera dos usuários.
+- **Referência:** três medições do pool 2: [162302](resultados/20261109-162302-17-pool-2/), [162429](resultados/20261109-162429-17-pool-2/) e [162555](resultados/20261109-162555-17-pool-2/). Medianas: 55,11 req/s, p95 geral 836,7 ms, p95 de `/pedidos` 1.041,5 ms, CPU média do banco 83,8%.
 - **Mudança:** pendente.
 - **Depois:** pendente.
-- **Status:** próximo experimento; código usa pool 5.
+- **Status:** próximo experimento; código usa pool 2.

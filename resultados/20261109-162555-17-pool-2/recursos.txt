@@ -1,0 +1,5 @@
+container                            amostras  cpu_media    cpu_max    mem_media      mem_max
+desafio-performance-api-1                  30      43.9%      54.0%     28.7 MiB     32.1 MiB
+desafio-performance-banco-1                30      87.5%      99.1%    285.8 MiB    396.1 MiB
+
+cpu_percentual: 100% = 1 CPU inteira.
