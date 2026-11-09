@@ -1,0 +1,35 @@
+Plano atual de busca de cliente por e-mail, antes de criar indice.
+
+Timing is on.
+=== Indices atuais ===
+                              List of relations
+ Schema |             Name              | Type  | Owner |        Table        
+--------+-------------------------------+-------+-------+---------------------
+ public | clientes_pkey                 | index | loja  | clientes
+ public | idx_itens_pedido              | index | loja  | itens_pedido
+ public | idx_pedidos_cliente           | index | loja  | pedidos
+ public | idx_pedidos_status            | index | loja  | pedidos
+ public | idx_resumo_top_produtos_ordem | index | loja  | resumo_top_produtos
+ public | itens_pedido_pkey             | index | loja  | itens_pedido
+ public | pedidos_pkey                  | index | loja  | pedidos
+ public | produtos_pkey                 | index | loja  | produtos
+(8 rows)
+
+=== Consulta da rota GET /clientes?email= ===
+                                                   QUERY PLAN                                                   
+----------------------------------------------------------------------------------------------------------------
+ Sort  (cost=2678.41..2679.66 rows=500 width=60) (actual time=321.380..321.387 rows=1 loops=1)
+   Sort Key: id
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=1159
+   ->  Seq Scan on clientes  (cost=0.00..2656.00 rows=500 width=60) (actual time=0.257..321.362 rows=1 loops=1)
+         Filter: (lower(email) = 'cliente3@exemplo.com'::text)
+         Rows Removed by Filter: 99999
+         Buffers: shared hit=1156
+ Planning:
+   Buffers: shared hit=53
+ Planning Time: 2.314 ms
+ Execution Time: 321.559 ms
+(12 rows)
+
+Time: 328.196 ms

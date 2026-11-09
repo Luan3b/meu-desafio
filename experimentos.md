@@ -91,3 +91,12 @@
 - **Depois:** três medições: [145036](resultados/20261109-145036-10-pedidos-colunas-depois/), [145210](resultados/20261109-145210-10-pedidos-colunas-depois/) e [145400](resultados/20261109-145400-10-pedidos-colunas-depois/). Todas tiveram `0.00%` de erros e “Contrato mantido”. O plano pós-mudança está em [13-pedidos-colunas-depois.txt](diagnostico/13-pedidos-colunas-depois.txt).
 - **Conclusão:** as medianas passaram de 30,40 para 27,72 req/s (-8,8%) e o p95 geral de 1.409,3 para 1.539,6 ms (+9,2%). O p95 de `pedidos-por-status` passou de 2.536,4 para 8.804,7 ms, com grande variação entre as três execuções; a CPU média mediana do banco caiu de 99,9% para 96,6%, mas junto com a vazão. O plano ficou mais estreito (width 299 para 22), porém ainda percorreu 15.020 entradas no índice. As medições não demonstram ganho de desempenho; a alteração será revertida e não mantida.
 - **Status:** teste concluído; resultados registrados; projeção explícita revertida por falta de ganho medido.
+
+## 11 — Índice funcional para busca de cliente por e-mail
+
+- **Hipótese:** um índice em `lower(email)` deve substituir a varredura sequencial de 100 mil clientes na rota `/clientes?email=` por uma busca no índice, preservando a comparação sem diferenciar maiúsculas/minúsculas e a ordenação por `id`.
+- **Evidência anterior:** [plano da consulta e índices atuais](diagnostico/14-clientes-email-antes.txt). A consulta leu 1.156 buffers, examinou 100 mil linhas e levou 321,559 ms nesta execução isolada; não havia índice funcional em `lower(email)`.
+- **Antes:** pendente; três medições da versão atual.
+- **Mudança:** pendente.
+- **Depois:** pendente.
+- **Status:** hipótese e diagnóstico registrados; referência de carga pendente.
