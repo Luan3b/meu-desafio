@@ -1,0 +1,17 @@
+Medição: 06-banco-2-cpus
+Carga: 20 usuários virtuais por 60s
+
+Requisições:        1519
+Requisições/s:      24.05
+Tempo de resposta:  mediana 508.8 ms | p95 2217.7 ms | p99 6282.8 ms
+Erros:              0.00%
+
+Por rota:
+rota                  req       mediana       p95           p99           erros   
+cliente               395       291.5 ms      825.3 ms      1817.8 ms     0.0%    
+cliente-por-email     230       595.3 ms      1016.4 ms     1468.4 ms     0.0%    
+pedidos-do-cliente    319       585.9 ms      1294.1 ms     2280.4 ms     0.0%    
+pedidos-por-status    209       923.3 ms      4557.0 ms     9620.6 ms     0.0%    
+busca-produtos        227       374.2 ms      875.0 ms      1659.4 ms     0.0%    
+vendas-por-dia        113       1120.9 ms     3073.5 ms     4704.4 ms     0.0%    
+top-produtos          26        5705.9 ms     12921.0 ms    13165.9 ms    0.0%    
