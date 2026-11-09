@@ -186,6 +186,15 @@
 - **Hipótese:** consolidar a checagem de existência do cliente e a leitura dos pedidos numa consulta pode retirar uma ida ao banco em 20% do tráfego. Cliente inexistente deve continuar em 404; cliente sem pedido deve continuar recebendo `[]`.
 - **Diagnóstico:** [planos atual e consolidado](diagnostico/25-pedidos-cliente-consulta-unica.txt). O plano da consulta atual de cliente levou 0,071 ms; pedidos do cliente, 0,552 ms. O plano consolidado levou 0,693 ms nesta amostra, portanto a vantagem esperada vem de remover uma consulta por requisição, não de reduzir o trabalho do plano.
 - **Referência:** medições atuais após o resumo diário: [163718](resultados/20261109-163718-19-vendas-dia-depois/), [163845](resultados/20261109-163845-19-vendas-dia-depois/) e [164010](resultados/20261109-164010-19-vendas-dia-depois/). Medianas: 197,63 req/s, p95 geral 308,7 ms e p95 da rota `pedidos-do-cliente` 433,8 ms.
+- **Mudança:** a rota parte de `clientes`, faz `LEFT JOIN` com pedidos, itens e produtos e identifica cliente inexistente pelo resultado vazio. Quando o cliente existe sem pedidos, a linha com pedido nulo é descartada e a resposta continua `[]`.
+- **Depois:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [164527](resultados/20261109-164527-20-cliente-pedidos-depois/), [164656](resultados/20261109-164656-20-cliente-pedidos-depois/) e [164821](resultados/20261109-164821-20-cliente-pedidos-depois/). Todas com `0.00%` de erros e contrato mantido. Medianas: 207,91 req/s (+5,2% ante 197,63), p95 geral 299,5 ms (-3,0%), p95 de `pedidos-do-cliente` 264,5 ms (-39,0%), CPU média do banco 94,7% (ante 91,4%).
+- **Conclusão:** manter. A maior melhora ficou na rota alterada; a consulta única retira uma viagem ao banco sem mudar os casos de 404 e lista vazia.
+- **Status:** aplicada, contrato mantido, três medições concluídas e alteração mantida.
+
+## 21 — Buscar contagem e página de pedidos em uma consulta
+
+- **Hipótese:** combinar a leitura da visão de contagens com a página de pedidos pode remover uma ida ao banco em 15% do tráfego, sem mudar total, paginação nem ordenação.
+- **Referência:** três medições atuais após a consolidação da rota de pedidos do cliente: [164527](resultados/20261109-164527-20-cliente-pedidos-depois/), [164656](resultados/20261109-164656-20-cliente-pedidos-depois/) e [164821](resultados/20261109-164821-20-cliente-pedidos-depois/). Medianas gerais: 207,91 req/s e p95 299,5 ms; p95 de `pedidos-por-status`: 488,3 ms.
 - **Mudança:** pendente.
 - **Depois:** pendente.
-- **Status:** hipótese diagnosticada; sem alteração aplicada ainda.
+- **Status:** próximo experimento; código ainda usa consultas separadas para total e página.
