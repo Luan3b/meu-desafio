@@ -1,0 +1,17 @@
+Medição: 19-vendas-dia-depois
+Carga: 20 usuários virtuais por 60s
+
+Requisições:        11945
+Requisições/s:      197.81
+Tempo de resposta:  mediana 49.7 ms | p95 308.4 ms | p99 495.4 ms
+Erros:              0.00%
+
+Por rota:
+rota                  req       mediana       p95           p99           erros   
+cliente               2976      33.0 ms       238.9 ms      412.0 ms      0.0%    
+cliente-por-email     1753      33.4 ms       249.9 ms      404.0 ms      0.0%    
+pedidos-do-cliente    2449      74.3 ms       433.8 ms      544.4 ms      0.0%    
+pedidos-por-status    1741      85.4 ms       458.9 ms      652.0 ms      0.0%    
+busca-produtos        1831      35.6 ms       262.1 ms      445.3 ms      0.0%    
+vendas-por-dia        973       33.1 ms       257.1 ms      416.3 ms      0.0%    
+top-produtos          222       33.7 ms       259.2 ms      378.4 ms      0.0%    
