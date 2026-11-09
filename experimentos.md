@@ -50,7 +50,7 @@
 
 ## 06 — Diagnóstico temporário com 2 CPUs no banco
 
-- **Hipótese:** se a CPU do banco for o gargalo principal na carga atual, duplicar temporariamente seu limite de 1 para 2 CPUs deve aumentar a vazão e reduzir a latência. O teste mantém memória, API, código, dados e parâmetros da carga iguais. O custo operacional também dobra o limite de CPU do banco durante este diagnóstico.
+- **Hipótese:** se a CPU do banco for o gargalo principal na carga atual, duplicar temporariamente seu limite de 1 para 2 CPUs deve aumentar a vazão e reduzir a latência. O teste mantém memória, API, código, dados e parâmetros da carga iguais. O custo operacional também dobra o limite de CPU do banco durante este diagnóstico. Como a porta 5432 do host está ocupada pelo PostgreSQL local, o Compose publica temporariamente o banco em 5433; a comunicação interna da API continua em 5432.
 - **Antes:** três execuções de `05-vendas-sem-observacoes`: [165357](resultados/20261106-165357-05-vendas-sem-observacoes/), [165536](resultados/20261106-165536-05-vendas-sem-observacoes/) e [165713](resultados/20261106-165713-05-vendas-sem-observacoes/), com limite de banco de 1 CPU.
 - **Depois:** pendente. O limite de 2 CPUs será temporário; após as medições, será restaurado para 1 CPU.
 - **Status:** em medição.
