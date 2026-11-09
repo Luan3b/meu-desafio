@@ -151,3 +151,11 @@
 - **Depois:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [161705](resultados/20261109-161705-16-pool-5/), [161836](resultados/20261109-161836-16-pool-5/) e [162001](resultados/20261109-162001-16-pool-5/). Todas com `0.00%` de erros e contrato mantido. Medianas: 50,35 req/s (+4,7% ante 48,08), p95 geral 1.005,5 ms (-15,6%), p95 de `/pedidos` 1.508,4 ms (-31,6%), CPU média do banco 91,7% (ante 94,9%). Memória média do banco 367,6 MiB (ante 305,8 MiB); pico mediano 487,9 MiB (ante 507,3 MiB), sem aumento no pico observado.
 - **Conclusão:** manter pool 5. As três rodadas tiveram vazão maior, p95 menor e CPU média menor que a referência de pool 10. A amostra de memória média ficou maior, embora os picos medianos tenham sido semelhantes.
 - **Status:** aplicada, contrato mantido, três medições concluídas e alteração mantida. Próxima hipótese: testar pool 2 para procurar o ponto de equilíbrio entre contenção do banco e espera por conexão.
+
+## 17 — Reduzir o pool de conexões de 5 para 2
+
+- **Hipótese:** duas conexões podem reduzir mais a contenção no banco de um núcleo; o risco é elevar a fila interna do pool e reduzir vazão.
+- **Referência:** três medições do pool 5: [161705](resultados/20261109-161705-16-pool-5/), [161836](resultados/20261109-161836-16-pool-5/) e [162001](resultados/20261109-162001-16-pool-5/). Medianas: 50,35 req/s, p95 geral 1.005,5 ms, p95 de `/pedidos` 1.508,4 ms, CPU média do banco 91,7%.
+- **Mudança:** pendente.
+- **Depois:** pendente.
+- **Status:** próximo experimento; código usa pool 5.
