@@ -225,6 +225,7 @@
 - **Evidência atual:** [planos com OFFSET](diagnostico/28-pedidos-pagina-offset-atual.txt). Página 1 levou 0,410 ms e leu 23 buffers; página 1.000 percorreu 20.000 entradas, leu 20.101 buffers e levou 210,674 ms nesta amostra.
 - **Teste exploratório:** [consulta por posição e custo temporário](diagnostico/27-pedidos-posicao-precalculada.txt). A página 1.000 foi lida em 1,173 ms numa tabela temporária de 31 MB com índice de 17 MB. Um objeto permanente semelhante acrescentaria cerca de 48 MB brutos; remover o índice atual de 21 MB reduziria o acréscimo líquido estimado para aproximadamente 27 MB. O tamanho real será medido se a mudança for aplicada.
 - **Referência:** pool 2, três medições atuais: [165704](resultados/20261109-165704-22-pool-2-atual/), [165831](resultados/20261109-165831-22-pool-2-atual/) e [165957](resultados/20261109-165957-22-pool-2-atual/). Medianas: 288,46 req/s, p95 geral 202,0 ms, p95 da rota 266,1 ms.
-- **Mudança:** pendente.
-- **Depois:** pendente.
-- **Status:** hipótese diagnosticada; tabela temporária foi descartada ao fim da sessão e nenhum objeto permanente foi criado.
+- **Mudança:** criada a visão materializada `pedidos_paginados_por_status` com posição por status e índice único `(status, posicao)`. A API busca diretamente o intervalo da página; o índice anterior `idx_pedidos_status` foi removido porque a rota deixou de consultá-lo.
+- **Plano e custo depois:** [plano persistente](diagnostico/29-pedidos-posicao-depois.txt). A página 1.000 leu sete buffers e levou 0,489 ms nesta amostra. A visão ocupa 31 MB e o índice 17 MB. O índice antigo tinha 21 MB, então o aumento líquido estimado é de cerca de 27 MB.
+- **Depois:** medições de carga pendentes.
+- **Status:** mudança aplicada e contrato mantido; três medições pendentes.
