@@ -239,3 +239,11 @@
 - **Conclusão:** `/pedidos` era um gargalo importante: seu p95 caiu de 26,8 s para 697 ms. A rota não era o único problema do sistema: com as outras rotas originais, o p95 geral continuou em 26,8 s e o banco permaneceu saturado.
 - **Implementação isolada:** está preservada na branch local `experimento/isolamento-pedidos`, no commit `3e332d9`; a branch principal continua com a versão otimizada completa.
 - **Registro detalhado:** [isolamento-pedidos.md](diagnostico/isolamento-pedidos.md).
+
+## 26 — Aumentar o limite de CPU da API de 0,5 para 0,75
+
+- **Hipótese:** com a paginação por posição, a API usa quase todo o limite de 0,5 CPU enquanto o banco fica abaixo de metade de um núcleo. Aumentar a API para 0,75 CPU pode elevar a vazão; o custo é reservar mais capacidade de CPU.
+- **Referência:** medições com configuração atual: [103418](resultados/20261110-103418-24-pedidos-posicao-depois/), [103545](resultados/20261110-103545-24-pedidos-posicao-depois/) e [103709](resultados/20261110-103709-24-pedidos-posicao-depois/). Medianas: 596,40 req/s, p95 geral 71,5 ms, CPU média da API 50,9% e CPU média do banco 43,6%.
+- **Mudança:** pendente.
+- **Depois:** pendente.
+- **Status:** próximo experimento; API usa limite de 0,5 CPU.
