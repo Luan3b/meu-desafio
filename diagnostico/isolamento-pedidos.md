@@ -23,4 +23,6 @@ Medianas: 2,25 req/s, p95 geral 28.415,7 ms, p95 de `pedidos-por-status` 26.795,
 
 ## Variante com apenas `/pedidos` otimizada
 
-Medições pendentes.
+Implementação no commit `3e332d9`: alterado somente o handler `/pedidos` e adicionado `banco/03-pedidos-precomputados.sql` com as visões de total e posição usadas por essa rota. As outras rotas e `api/src/db.js` permanecem originais. O contrato passou nas 42 respostas.
+
+Medições posteriores pendentes.
