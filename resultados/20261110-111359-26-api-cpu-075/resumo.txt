@@ -1,0 +1,17 @@
+Medição: 26-api-cpu-075
+Carga: 20 usuários virtuais por 60s
+
+Requisições:        51843
+Requisições/s:      863.85
+Tempo de resposta:  mediana 16.7 ms | p95 47.3 ms | p99 66.1 ms
+Erros:              0.00%
+
+Por rota:
+rota                  req       mediana       p95           p99           erros   
+cliente               13035     16.0 ms       46.4 ms       65.4 ms       0.0%    
+cliente-por-email     7864      16.0 ms       46.2 ms       65.0 ms       0.0%    
+pedidos-do-cliente    10292     17.2 ms       47.6 ms       66.2 ms       0.0%    
+pedidos-por-status    7692      16.3 ms       46.2 ms       65.1 ms       0.0%    
+busca-produtos        7807      18.3 ms       50.4 ms       68.4 ms       0.0%    
+vendas-por-dia        4140      16.0 ms       45.1 ms       65.2 ms       0.0%    
+top-produtos          1013      16.1 ms       45.6 ms       64.7 ms       0.0%    

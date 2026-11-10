@@ -244,6 +244,15 @@
 
 - **Hipótese:** com a paginação por posição, a API usa quase todo o limite de 0,5 CPU enquanto o banco fica abaixo de metade de um núcleo. Aumentar a API para 0,75 CPU pode elevar a vazão; o custo é reservar mais capacidade de CPU.
 - **Referência:** medições com configuração atual: [103418](resultados/20261110-103418-24-pedidos-posicao-depois/), [103545](resultados/20261110-103545-24-pedidos-posicao-depois/) e [103709](resultados/20261110-103709-24-pedidos-posicao-depois/). Medianas: 596,40 req/s, p95 geral 71,5 ms, CPU média da API 50,9% e CPU média do banco 43,6%.
+- **Mudança:** limite da API aumentado de 0,5 para 0,75 CPU; banco permanece em 1 CPU.
+- **Depois:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [111231](resultados/20261110-111231-26-api-cpu-075/), [111359](resultados/20261110-111359-26-api-cpu-075/) e [111524](resultados/20261110-111524-26-api-cpu-075/). Todas sem erros e com contrato mantido. Medianas: 884,13 req/s (+48,2% ante 596,40), p95 geral 45,4 ms (-36,5%), CPU média da API 77,0% (ante 50,9%) e CPU média do banco 67,5% (ante 43,6%).
+- **Conclusão:** manter 0,75 CPU para a versão mais rápida. O aumento de 50% no limite veio acompanhado de 48,2% mais vazão; API e banco passaram a usar mais CPU.
+- **Status:** aplicada, contrato mantido, três medições concluídas.
+
+## 27 — Aumentar o limite de CPU da API de 0,75 para 1,0
+
+- **Hipótese:** a API ainda usa quase todo o limite de 0,75 CPU. Um núcleo pode elevar mais a vazão, com o custo de mais 0,25 CPU configurada; o banco tem margem observada de CPU.
+- **Referência:** três medições com API em 0,75 CPU: [111231](resultados/20261110-111231-26-api-cpu-075/), [111359](resultados/20261110-111359-26-api-cpu-075/) e [111524](resultados/20261110-111524-26-api-cpu-075/). Medianas: 884,13 req/s, p95 geral 45,4 ms, CPU média da API 77,0%, CPU média do banco 67,5%.
 - **Mudança:** pendente.
 - **Depois:** pendente.
-- **Status:** próximo experimento; API usa limite de 0,5 CPU.
+- **Status:** próximo experimento; API usa limite de 0,75 CPU.
