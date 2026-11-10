@@ -230,3 +230,12 @@
 - **Depois:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [103418](resultados/20261110-103418-24-pedidos-posicao-depois/), [103545](resultados/20261110-103545-24-pedidos-posicao-depois/) e [103709](resultados/20261110-103709-24-pedidos-posicao-depois/). Todas com `0.00%` de erros e contrato mantido. Medianas: 596,40 req/s (+106,8% ante 288,46), p95 geral 71,5 ms (-64,6%), p95 de `pedidos-por-status` 70,6 ms (-73,5%), CPU média do banco 43,6% (ante 100,4%) e memória média 172,0 MiB (ante 160,8 MiB).
 - **Conclusão:** manter a paginação por posição. A vazão mais que dobrou, os p95 caíram e a CPU do banco diminuiu. O custo é cerca de 27 MB líquidos estimados em armazenamento e a visão precisa ser recriada/atualizada quando os pedidos mudarem.
 - **Status:** aplicada, contrato mantido, três medições concluídas e alteração mantida.
+
+## 25 — Isolar o efeito da otimização de `/pedidos`
+
+- **Objetivo:** medir o aplicativo original e depois mudar somente `/pedidos` e as duas visões SQL auxiliares; todas as outras rotas e `api/src/db.js` ficam originais na variante.
+- **Antes:** três medições na versão original: [105138](resultados/20261110-105138-25-pedidos-isolado-antes/), [105333](resultados/20261110-105333-25-pedidos-isolado-antes/) e [105521](resultados/20261110-105521-25-pedidos-isolado-antes/). Medianas: 2,25 req/s, p95 geral 28.415,7 ms, p95 de `pedidos-por-status` 26.795,9 ms, CPU média do banco 99,3%.
+- **Depois:** três medições com somente `/pedidos` otimizada: [105935](resultados/20261110-105935-25-pedidos-isolado-depois/), [110128](resultados/20261110-110128-25-pedidos-isolado-depois/) e [110321](resultados/20261110-110321-25-pedidos-isolado-depois/). Medianas: 2,88 req/s (+28,0%), p95 geral 26.848,2 ms (-5,5%), p95 da rota 696,9 ms (-97,4%), CPU média do banco 100,3%. Todas sem erros e com contrato mantido.
+- **Conclusão:** `/pedidos` era um gargalo importante: seu p95 caiu de 26,8 s para 697 ms. A rota não era o único problema do sistema: com as outras rotas originais, o p95 geral continuou em 26,8 s e o banco permaneceu saturado.
+- **Implementação isolada:** está preservada na branch local `experimento/isolamento-pedidos`, no commit `3e332d9`; a branch principal continua com a versão otimizada completa.
+- **Registro detalhado:** [isolamento-pedidos.md](diagnostico/isolamento-pedidos.md).
