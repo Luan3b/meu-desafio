@@ -251,8 +251,8 @@
 
 ## 27 — Aumentar o limite de CPU da API de 0,75 para 1,0
 
-- **Hipótese:** a API ainda usa quase todo o limite de 0,75 CPU. Um núcleo pode elevar mais a vazão, com o custo de mais 0,25 CPU configurada; o banco tem margem observada de CPU.
+- **Hipótese:** testar se elevar o limite da API de 0,75 para 1,0 CPU aumenta a vazão. O teste foi interrompido antes de completar as três medições exigidas.
 - **Referência:** três medições com API em 0,75 CPU: [111231](resultados/20261110-111231-26-api-cpu-075/), [111359](resultados/20261110-111359-26-api-cpu-075/) e [111524](resultados/20261110-111524-26-api-cpu-075/). Medianas: 884,13 req/s, p95 geral 45,4 ms, CPU média da API 77,0%, CPU média do banco 67,5%.
-- **Mudança:** pendente.
-- **Depois:** pendente.
-- **Status:** próximo experimento; API usa limite de 0,75 CPU.
+- **Execuções parciais:** [111750](resultados/20261110-111750-27-api-cpu-1/) e [111918](resultados/20261110-111918-27-api-cpu-1/). Ambas concluíram sem erros e registraram contexto limpo, mas não formam as três medições necessárias para uma conclusão comparável.
+- **Configuração restaurada:** API em 0,5 CPU e 256 MB; banco em 1 CPU e 512 MB. As otimizações de código e banco permanecem aplicadas.
+- **Status:** experimento cancelado a pedido da autora; sem conclusão de desempenho.
