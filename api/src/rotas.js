@@ -116,17 +116,16 @@ rotas.get('/pedidos', assincrono(async (req, res) => {
   if (pagina === null) return res.status(400).json({ erro: 'pagina invalida' });
 
   const linhas = await consultar(
-    `SELECT resumo.total, pagina.id, pagina.cliente_id, pagina.status, pagina.criado_em
+    `SELECT resumo.total, pagina.posicao, pagina.id, pagina.cliente_id, pagina.status, pagina.criado_em
        FROM resumo_pedidos_por_status resumo
        LEFT JOIN LATERAL (
-         SELECT id, cliente_id, status, criado_em
-           FROM pedidos
-          WHERE status = $1
-          ORDER BY criado_em DESC, id DESC
-          LIMIT $2 OFFSET $3
+         SELECT posicao, id, cliente_id, status, criado_em
+           FROM pedidos_paginados_por_status
+          WHERE status = $1 AND posicao > $3 AND posicao <= ($3 + $2)
+          ORDER BY posicao
        ) pagina ON TRUE
       WHERE resumo.status = $1
-      ORDER BY pagina.criado_em DESC, pagina.id DESC`,
+      ORDER BY pagina.posicao`,
     [status, TAMANHO_PAGINA, (pagina - 1) * TAMANHO_PAGINA],
   );
 
