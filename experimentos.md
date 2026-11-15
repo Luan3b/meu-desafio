@@ -246,13 +246,13 @@
 - **Referência:** medições com configuração atual: [103418](resultados/20261110-103418-24-pedidos-posicao-depois/), [103545](resultados/20261110-103545-24-pedidos-posicao-depois/) e [103709](resultados/20261110-103709-24-pedidos-posicao-depois/). Medianas: 596,40 req/s, p95 geral 71,5 ms, CPU média da API 50,9% e CPU média do banco 43,6%.
 - **Mudança:** limite da API aumentado de 0,5 para 0,75 CPU; banco permanece em 1 CPU.
 - **Depois:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [111231](resultados/20261110-111231-26-api-cpu-075/), [111359](resultados/20261110-111359-26-api-cpu-075/) e [111524](resultados/20261110-111524-26-api-cpu-075/). Todas sem erros e com contrato mantido. Medianas: 884,13 req/s (+48,2% ante 596,40), p95 geral 45,4 ms (-36,5%), CPU média da API 77,0% (ante 50,9%) e CPU média do banco 67,5% (ante 43,6%).
-- **Conclusão:** manter 0,75 CPU para a versão mais rápida. O aumento de 50% no limite veio acompanhado de 48,2% mais vazão; API e banco passaram a usar mais CPU.
-- **Status:** aplicada, contrato mantido, três medições concluídas.
+- **Conclusão:** no teste temporário, elevar o limite de CPU veio acompanhado de mais vazão, mas isso aumenta o recurso reservado e não atende ao foco definido para o trabalho: otimizar mantendo a máquina nos limites originais. A configuração de 0,75 CPU foi descartada e a API voltou a 0,5 CPU.
+- **Status:** experimento medido e contrato mantido; configuração temporária revertida por decisão de escopo. Os resultados permanecem como evidência do custo de comprar desempenho com mais CPU.
 
 ## 27 — Aumentar o limite de CPU da API de 0,75 para 1,0
 
 - **Hipótese:** testar se elevar o limite da API de 0,75 para 1,0 CPU aumenta a vazão. O teste foi interrompido antes de completar as três medições exigidas.
 - **Referência:** três medições com API em 0,75 CPU: [111231](resultados/20261110-111231-26-api-cpu-075/), [111359](resultados/20261110-111359-26-api-cpu-075/) e [111524](resultados/20261110-111524-26-api-cpu-075/). Medianas: 884,13 req/s, p95 geral 45,4 ms, CPU média da API 77,0%, CPU média do banco 67,5%.
 - **Execuções parciais:** [111750](resultados/20261110-111750-27-api-cpu-1/) e [111918](resultados/20261110-111918-27-api-cpu-1/). Ambas concluíram sem erros e registraram contexto limpo, mas não formam as três medições necessárias para uma conclusão comparável.
-- **Configuração restaurada:** API em 0,5 CPU e 256 MB; banco em 1 CPU e 512 MB. As otimizações de código e banco permanecem aplicadas.
-- **Status:** experimento cancelado a pedido da autora; sem conclusão de desempenho.
+- **Configuração restaurada:** API em 0,5 CPU e 256 MB; banco em 1 CPU e 512 MB. `docker compose up -d --build` recriou os serviços e `scripts/verificar-contrato.sh comparar` confirmou “Contrato mantido” nas 42 respostas. As otimizações de código e banco permanecem aplicadas.
+- **Status:** experimento cancelado após duas medições, sem conclusão de desempenho; limites originais restaurados e contrato revalidado.
