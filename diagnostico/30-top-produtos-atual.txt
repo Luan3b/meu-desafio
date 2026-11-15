@@ -1,0 +1,12 @@
+                                                                            QUERY PLAN                                                                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=0.29..1.04 rows=10 width=57) (actual time=0.594..1.623 rows=10 loops=1)
+   Buffers: shared read=12
+   ->  Index Scan using idx_resumo_top_produtos_ordem on resumo_top_produtos  (cost=0.29..1436.31 rows=19206 width=57) (actual time=0.591..1.592 rows=10 loops=1)
+         Buffers: shared read=12
+ Planning:
+   Buffers: shared hit=62 read=15
+ Planning Time: 3.760 ms
+ Execution Time: 2.081 ms
+(8 rows)
+
