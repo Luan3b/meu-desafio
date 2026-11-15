@@ -4,6 +4,12 @@ Aplicação do desafio técnico da vaga de estágio em Pesquisa e Inovação da 
 
 A aplicação é a API de uma loja fictícia, em Node.js (Express) com PostgreSQL 16, rodando em containers. Ela funciona, mas fica lenta sob carga e gasta mais recursos do que deveria. Todos os dados são sintéticos e gerados na primeira subida: 100 mil clientes, 20 mil produtos, 500 mil pedidos e 1,5 milhão de itens de pedido.
 
+## Resumo dos resultados
+
+Com `VUS=20`, `DURACAO=60s` e `SEMENTE=42`, a mediana da versão original foi **2,39 req/s**, com p95 geral de **26.801 ms**. Na versão otimizada, mantendo os limites padrão (API 0,5 CPU/256 MB e banco 1 CPU/512 MB), a mediana foi **596,40 req/s**, com p95 geral de **71,5 ms**. São três execuções antes e três depois; as pastas e a análise estão em [experimentos.md](experimentos.md) e [resultados/](resultados/).
+
+As mudanças com melhor evidência reduziram consultas repetidas, adicionaram índices adequados às buscas e pré-calcularam agregações e posições usadas por rotas caras. O contrato foi revalidado depois da restauração dos limites: as 42 respostas conferidas permaneceram iguais. O [registro de experimentos](experimentos.md) também inclui testes sem ganho, resultados mistos e hipóteses descartadas. Ideias que ainda exigem outro tipo de carga estão em [proximos-testes.md](proximos-testes.md).
+
 ## Prazo e entrega
 
 - **Prazo e entregas:** estão no enunciado enviado na largada
