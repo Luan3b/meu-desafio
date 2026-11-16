@@ -1,5 +1,39 @@
 # Experimentos
 
+## Resumo tabular
+
+Cada link abre a ficha completa da ideia: fonte da hipótese, status, medianas antes/depois, pastas de resultados, recursos e conclusão. Valores `—` identificam diagnósticos sem comparação de carga ou teste incompleto.
+
+| ID | Ideia | Mediana antes → depois (req/s; p95 geral) | Status / resultado |
+|---:|---|---|---|
+| 01 | [Pool de conexões](#01--pool-de-conexões) | 2,39; 26.801 ms → 2,86; 25.227,2 ms | Aplicada; ganho modesto |
+| 02 | [JOIN para pedidos do cliente](#02--consulta-única-para-pedidos-do-cliente) | 2,86; 25.227,2 ms → 4,21; 10.916,1 ms | Aplicada; ganho na rota |
+| 03 | [Índices de cliente e itens](#03--índices-para-pedidos-do-cliente) | 4,21; 10.916,1 ms → 6,25; 9.058 ms | Aplicados; ganho com custo de disco |
+| 04 | [Índice por status](#04--índice-para-pedidos-por-status) | 6,25; 9.058 ms → 10,13; 6.202 ms | Aplicado; offset profundo persistiu |
+| 05 | [Remover coluna não usada](#05--remover-coluna-não-usada-em-vendas-por-dia) | 10,13; 6.202 ms → 12,87; 4.003,2 ms | Aplicada |
+| 06 | [Diagnóstico com banco em 2 CPUs](#06--diagnóstico-temporário-com-2-cpus-no-banco) | 12,87; 4.003,2 ms → 24,05; 2.117,8 ms | Medido; limite restaurado |
+| 07 | [`pg_stat_statements`](#07--diagnóstico-de-consultas-com-pg_stat_statements) | — | Diagnóstico, sem mudança |
+| 08 | [Resumo de top produtos](#08--pré-computar-os-totais-de-top-produtos) | 13,31; 4.395 ms → 26,17; 1.891,2 ms | Aplicado |
+| 09 | [Filtro de data por intervalo](#09--usar-intervalo-direto-de-timestamp-no-relatório-diário) | 27,43; 1.698,6 ms → 30,88; 1.407,5 ms | Aplicado |
+| 10 | [Projeção de colunas](#10--selecionar-somente-colunas-usadas-na-listagem-de-pedidos) | 30,40; 1.409,3 ms → 27,72; 1.539,6 ms | Revertida; sem ganho |
+| 11 | [Índice funcional de email](#11--índice-funcional-para-busca-de-cliente-por-e-mail) | 30,28; 1.400,8 ms → 40,60; 1.193,8 ms | Aplicado |
+| 12 | [Índice trigram](#12--índice-trigram-para-busca-de-produtos) | 40,14; 1.246,7 ms → 41,81; 1.399,4 ms | Aplicado; resultado misto |
+| 13 | [Resumo de contagem por status](#13--pré-computar-a-contagem-exata-de-pedidos-por-status) | 43,62; 1.212,2 ms → 46,33; 1.209,5 ms | Aplicado; ganho modesto |
+| 14 | [Índice coberto](#14--tornar-a-paginação-profunda-de-pedidos-coberta-pelo-índice) | 48,08; 1.190,8 ms → 46,87; 1.193,7 ms | Removido; inconclusivo |
+| 15 | [`work_mem`](#15--avaliar-work_mem-para-a-ordenação-de-páginas-profundas) | — | Exploratório; não aplicado |
+| 16 | [Pool 10 para 5](#16--reduzir-o-pool-de-conexões-de-10-para-5) | 48,08; 1.190,8 ms → 50,35; 1.005,5 ms | Aplicado na etapa |
+| 17 | [Pool 5 para 2](#17--reduzir-o-pool-de-conexões-de-5-para-2) | 50,35; 1.005,5 ms → 55,11; 836,7 ms | Aplicado na etapa |
+| 18 | [Pool 2 para 1](#18--reduzir-o-pool-de-conexões-de-2-para-1) | 55,11; 836,7 ms → 62,23; 714,5 ms | Aplicado na etapa |
+| 19 | [Resumo de vendas diárias](#19--pré-computar-as-vendas-agregadas-por-dia) | 62,23; 714,5 ms → 197,63; 308,7 ms | Aplicado |
+| 20 | [Cliente e pedidos em um JOIN](#20--buscar-cliente-e-pedidos-em-uma-consulta) | 197,63; 308,7 ms → 207,91; 299,5 ms | Aplicado |
+| 21 | [Total e página em uma consulta](#21--buscar-contagem-e-página-de-pedidos-em-uma-consulta) | 207,91; 299,5 ms → 274,35; 207,2 ms | Aplicado |
+| 22 | [Pool 1 para 2 reavaliado](#22--reavaliar-tamanho-do-pool-após-reduzir-as-consultas-por-requisição) | 274,35; 207,2 ms → 288,46; 202,0 ms | Aplicado; efeito misto |
+| 23 | [Pool 2 para 3](#23--aumentar-o-pool-atual-de-2-para-3) | 288,46; 202,0 ms → 218,43; 279,9 ms | Rejeitado |
+| 24 | [Posição de pedidos pré-calculada](#24--pré-calcular-a-posição-de-cada-pedido-por-status) | 288,46; 202,0 ms → 596,40; 71,5 ms | Aplicada; maior ganho recente |
+| 25 | [Isolar a rota `/pedidos`](#25--isolar-o-efeito-da-otimização-de-pedidos) | 2,25; 28.415,7 ms → 2,88; 26.848,2 ms | Isolamento; rota caiu 97,4% no p95 |
+| 26 | [API 0,5 para 0,75 CPU](#26--aumentar-o-limite-de-cpu-da-api-de-05-para-075) | 596,40; 71,5 ms → 884,13; 45,4 ms | Medido; CPU extra revertida |
+| 27 | [API 0,75 para 1 CPU](#27--aumentar-o-limite-de-cpu-da-api-de-075-para-10) | — | Duas medições; sem conclusão |
+
 ## 01 — Pool de conexões
 
 - **Hipótese:** reutilizar até 10 conexões com `pg.Pool` deve reduzir a latência e a CPU do banco, evitando abrir e fechar uma conexão PostgreSQL para cada consulta. A resposta da API deve permanecer igual.
@@ -130,7 +164,7 @@
 - **Hipótese:** adicionar `cliente_id` como coluna `INCLUDE` ao índice de status permite um plano index-only para a listagem, que só retorna `id`, `cliente_id`, `status` e `criado_em`. Isso pode evitar leituras aleatórias da tabela e deixar o índice utilizável também para offsets profundos. O custo é recriar e aumentar o índice. A resposta e o offset não mudam.
 - **Evidência antes:** [planos atuais](diagnostico/20-pedidos-paginacao-antes.txt). Para `status='pago'`, offset 19.980 levou 71,038 ms e leu 20.101 buffers via index scan. Offset 279.980 levou 1.768,538 ms, fez varredura sequencial, ordenação externa de 10 MB e escreveu 1.258 blocos temporários. O índice atual ocupa 21 MB. A página 14.000 ainda retorna linhas; a página 20.000 excede a quantidade de pedidos pagos.
 - **Antes:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [160204](resultados/20261109-160204-14-paginacao-antes/), [160330](resultados/20261109-160330-14-paginacao-antes/) e [160456](resultados/20261109-160456-14-paginacao-antes/). Todas com `0.00%` de erros e contrato mantido. Medianas: 48,08 req/s, p95 geral 1.190,8 ms, p95 da rota 2.206,1 ms, CPU média do banco 94,9%.
-- **Mudança:** recriado `idx_pedidos_status` com as mesmas chaves e `INCLUDE (cliente_id)` em [09-indice-pedidos-status-coberto.sql](banco/09-indice-pedidos-status-coberto.sql).
+- **Mudança:** recriado `idx_pedidos_status` com as mesmas chaves e `INCLUDE (cliente_id)` no arquivo temporário `banco/09-indice-pedidos-status-coberto.sql`, preservado no histórico do commit `3974a80` e removido no revert `189e176`.
 - **Plano e custo depois:** [planos após a mudança](diagnostico/21-pedidos-paginacao-depois.txt). A página 1.000 usa `Index Only Scan`, mas teve 20.000 heap fetches e levou 65,640 ms. Na página 14.000 o plano ainda faz varredura sequencial e ordenação externa de 10 MB, levando 1.795,612 ms. O índice segue com tamanho reportado de 21 MB.
 - **Depois:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [160829](resultados/20261109-160829-14-paginacao-depois/), [160956](resultados/20261109-160956-14-paginacao-depois/) e [161123](resultados/20261109-161123-14-paginacao-depois/). Todas com `0.00%` de erros e contrato mantido. Medianas: 46,87 req/s (-2,5% ante 48,08), p95 geral 1.193,7 ms (+0,2% ante 1.190,8), p95 de `/pedidos` 2.106,0 ms (-4,5% ante 2.206,1), CPU média do banco 95,6% (ante 94,9%). A dispersão da carga é maior que a diferença observada.
 - **Conclusão:** não manter o índice coberto. O plano da página 1.000 mudou para `Index Only Scan`, mas ainda buscou cada linha no heap; a página 14.000 continuou fazendo varredura e ordenação externa. O resultado de carga não comprova ganho estável que justifique a alteração.
