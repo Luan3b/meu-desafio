@@ -1,0 +1,17 @@
+Medição: 28-log-resposta-depois
+Carga: 20 usuários virtuais por 60s
+
+Requisições:        34657
+Requisições/s:      577.33
+Tempo de resposta:  mediana 17.4 ms | p95 74.8 ms | p99 90.7 ms
+Erros:              0.00%
+
+Por rota:
+rota                  req       mediana       p95           p99           erros   
+cliente               8731      16.4 ms       73.4 ms       90.8 ms       0.0%    
+cliente-por-email     5250      16.6 ms       74.4 ms       90.7 ms       0.0%    
+pedidos-do-cliente    6902      17.8 ms       75.0 ms       90.4 ms       0.0%    
+pedidos-por-status    5136      17.0 ms       74.2 ms       90.2 ms       0.0%    
+busca-produtos        5173      19.3 ms       77.3 ms       91.8 ms       0.0%    
+vendas-por-dia        2798      16.9 ms       73.5 ms       90.1 ms       0.0%    
+top-produtos          667       16.6 ms       75.1 ms       87.6 ms       0.0%    
