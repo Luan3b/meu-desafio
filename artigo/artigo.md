@@ -1,12 +1,12 @@
-# Da varredura de tabelas a 596,40 req/s, sem aumentar os limites
+# Da varredura de tabelas a 612,73 req/s, sem aumentar os limites
 
 ## 1. Resumo
 
-A API de loja respondia lentamente sob uma carga de 20 usuários. Investiguei as consultas e medi cada alteração com o mesmo script. Mantendo API em 0,5 CPU/256 MB e PostgreSQL em 1 CPU/512 MB, a mediana passou de 2,39 para 596,40 requisições por segundo; o p95 geral caiu de 26.801 ms para 71,5 ms. O contrato foi mantido. O maior avanço veio de eliminar trabalho repetido no banco, pré-calcular agregações e substituir a paginação profunda por busca direta da posição.
+A API de loja respondia lentamente sob uma carga de 20 usuários. Investiguei as consultas e medi cada alteração com o mesmo script. Na comparação sequencial mais recente, a versão final atingiu mediana de 612,73 req/s e p95 de 70,7 ms, mantendo API em 0,5 CPU/256 MB e PostgreSQL em 1 CPU/512 MB. Na versão original, a mediana do p95 foi 33.970 ms, mas duas das três rodadas tiveram timeout e uma reportou 0,00 req/s apesar de concluir 138 requisições; por isso não apresento um percentual confiável de aumento de vazão entre essas duas rodadas. O contrato foi mantido. O maior avanço veio de reduzir trabalho repetido no banco, pré-calcular agregações e substituir a paginação profunda por busca direta da posição.
 
 ## 2. Contexto e diagnóstico
 
-A API usa Node.js, Express e PostgreSQL 16, com 100 mil clientes, 20 mil produtos, 500 mil pedidos e 1,5 milhão de itens. A carga fornecida chama sete rotas. Uma execução da linha de base, em [00-linha-de-base](../resultados/20261106-114000-00-linha-de-base/), teve p95 geral de 26.738,9 ms; a mediana de três execuções foi 2,39 req/s e 26.801 ms. O PostgreSQL usou em média cerca de um núcleo.
+A API usa Node.js, Express e PostgreSQL 16, com 100 mil clientes, 20 mil produtos, 500 mil pedidos e 1,5 milhão de itens. A carga fornecida chama sete rotas. Na linha de base original repetida em sequência com a versão final, as três pastas estão registradas no experimento 29. O p95 mediano foi 33.970 ms; duas execuções tiveram timeout e uma delas mostrou inconsistência na vazão reportada. Em comparação, as três rodadas finais ficaram entre 610,16 e 612,97 req/s e entre 70,5 e 71,9 ms de p95.
 
 Usei `EXPLAIN (ANALYZE, BUFFERS)` para observar leituras, ordenações e índices. Os planos mostraram varreduras grandes, agregações repetidas e custo crescente do `OFFSET`. Hipóteses, resultados e pastas estão em [experimentos.md](../experimentos.md).
 
@@ -45,7 +45,7 @@ Não mantive o índice coberto, a projeção isolada de colunas, o aumento de `w
 
 ## 6. Experimento e resultado
 
-As medições usaram `VUS=20`, `DURACAO=60s` e `SEMENTE=42`. A tabela cobre os 27 experimentos; cada link abre a ficha com hipótese, fonte, pastas de resultados e recursos medidos.
+As medições usaram `VUS=20`, `DURACAO=60s` e `SEMENTE=42`. A tabela resume os 29 experimentos; cada link abre a ficha com hipótese, fonte, pastas de resultados e recursos medidos.
 
 | Mudança (detalhes e pastas) | p95 ms antes→depois | req/s antes→depois | CPU/RAM observadas | Decisão |
 |---|---:|---:|---|---|
@@ -76,8 +76,10 @@ As medições usaram `VUS=20`, `DURACAO=60s` e `SEMENTE=42`. A tabela cobre os 2
 | [25 `/pedidos` isolado](../experimentos.md#25--isolar-o-efeito-da-otimização-de-pedidos) | 28.415,7→26.848,2 | 2,25→2,88 | DB CPU 99,3→100,3% | Só rota: p95 -97,4% |
 | [26 API 0,5→0,75 CPU](../experimentos.md#26--aumentar-o-limite-de-cpu-da-api-de-05-para-075) | 71,5→45,4 | 596,40→884,13 | API CPU 50,9→77%; DB 43,6→67,5% | Revertida |
 | [27 API 0,75→1 CPU](../experimentos.md#27--aumentar-o-limite-de-cpu-da-api-de-075-para-10) | Incompleto | Duas execuções | Configuração padrão restaurada | Sem conclusão |
+| [28 Reduzir log da API](../experimentos.md#28--remover-o-corpo-da-resposta-do-log) | 74,2→74,8 | 559,11→571,21 | API CPU 50,4→50,7%; volume de log -93,02% | Menos disco; desempenho inconclusivo |
+| [29 Comparação sequencial](../experimentos.md#29--comparação-sequencial-original-e-final) | 33.970→70,7 | Original inconsistente→612,73 | DB CPU 100,1→45,1%; API 8,3→50,9% | Contrato mantido; baseline instável |
 
-Na comparação geral, a CPU média da API foi 7,5% na linha de base e 50,9% na versão final; a do banco caiu de 100,2% para 43,6%. A memória média mediana passou de 35,2 para 30,5 MiB na API e de 419,8 para 172,0 MiB no banco. Os limites permaneceram iguais. Os valores vêm das pastas da linha de base e da versão final; as medições completas incluem p99, erros e arquivos de recursos. O teste isolado de `/pedidos` também está registrado em [diagnostico/isolamento-pedidos.md](../diagnostico/isolamento-pedidos.md): isoladamente, reduziu o p95 da rota de 26.795,9 para 696,9 ms, mas não eliminou a lentidão das outras rotas originais.
+* A execução original do meio reportou 0,00 req/s apesar de 138 requisições; por isso não calculo um multiplicador para o par sequencial. As medianas de CPU vêm das três pastas do experimento 29: a API foi de 8,3% para 50,9% e o banco caiu de 100,1% para 45,1%, sem mudança nos limites. A memória média mediana foi 30,9→30,0 MiB na API e 241,8→276,5 MiB no banco. O uso de CPU da API cresceu para atender mais requisições, enquanto o trabalho do banco caiu. O teste isolado de `/pedidos` está em [diagnostico/isolamento-pedidos.md](../diagnostico/isolamento-pedidos.md): isoladamente, reduziu o p95 da rota de 26.795,9 para 696,9 ms, sem remover a lentidão das outras rotas originais.
 
 ## 7. Limites e testes futuros
 
@@ -85,14 +87,21 @@ Os resultados cobrem uma máquina, banco estático e 20 usuários. Mudanças int
 
 ## 8. Referências
 
-1. Turcotte, Alexi; Aldrich, Mark W.; Tip, Frank. *Reformulator: Automated Refactoring of the N+1 Problem in Database-Backed Applications*. ASE 2022. [DOI](https://doi.org/10.1145/3551349.3556911). Acesso em 16 nov. 2026.
-2. node-postgres. *Pooling*. [Documentação oficial](https://node-postgres.com/features/pooling). Acesso em 16 nov. 2026.
-3. PostgreSQL Global Development Group. *PostgreSQL 16: Indexes*. [Documentação](https://www.postgresql.org/docs/16/indexes.html). Acesso em 16 nov. 2026.
-4. PostgreSQL Global Development Group. *PostgreSQL 16: `pg_trgm`*. [Documentação](https://www.postgresql.org/docs/16/pgtrgm.html). Acesso em 16 nov. 2026.
-5. PostgreSQL Global Development Group. *PostgreSQL 16: `EXPLAIN`*. [Documentação](https://www.postgresql.org/docs/16/sql-explain.html). Acesso em 16 nov. 2026.
-6. PostgreSQL Global Development Group. *PostgreSQL 16: Materialized Views*. [Documentação](https://www.postgresql.org/docs/16/rules-materializedviews.html). Acesso em 16 nov. 2026.
-7. PostgreSQL Global Development Group. *PostgreSQL 16: `pg_stat_statements`*. [Documentação](https://www.postgresql.org/docs/16/pgstatstatements.html). Acesso em 16 nov. 2026.
+1. Turcotte, Alexi; Aldrich, Mark W.; Tip, Frank. *Reformulator: Automated Refactoring of the N+1 Problem in Database-Backed Applications*. ASE 2022. [DOI](https://doi.org/10.1145/3551349.3556911). Acesso em 17 nov. 2026.
+2. node-postgres. *Pooling*. [Documentação oficial](https://node-postgres.com/features/pooling). Acesso em 17 nov. 2026.
+3. PostgreSQL Global Development Group. *PostgreSQL 16: Indexes*. [Documentação](https://www.postgresql.org/docs/16/indexes.html). Acesso em 17 nov. 2026.
+4. PostgreSQL Global Development Group. *PostgreSQL 16: `pg_trgm`*. [Documentação](https://www.postgresql.org/docs/16/pgtrgm.html). Acesso em 17 nov. 2026.
+5. PostgreSQL Global Development Group. *PostgreSQL 16: `EXPLAIN`*. [Documentação](https://www.postgresql.org/docs/16/sql-explain.html). Acesso em 17 nov. 2026.
+6. PostgreSQL Global Development Group. *PostgreSQL 16: Materialized Views*. [Documentação](https://www.postgresql.org/docs/16/rules-materializedviews.html). Acesso em 17 nov. 2026.
+7. PostgreSQL Global Development Group. *PostgreSQL 16: `pg_stat_statements`*. [Documentação](https://www.postgresql.org/docs/16/pgstatstatements.html). Acesso em 17 nov. 2026.
+8. PostgreSQL Global Development Group. *PostgreSQL 16: `REFRESH MATERIALIZED VIEW`*. [Documentação](https://www.postgresql.org/docs/16/sql-refreshmaterializedview.html). Acesso em 17 nov. 2026.
+9. Markus Winand. *Paging Through Results* e *We need tool support for keyset pagination*. [Seek method](https://use-the-index-luke.com/sql/partial-results/fetch-next-page), [keyset pagination](https://use-the-index-luke.com/no-offset). Acesso em 17 nov. 2026.
+10. HikariCP. *About Pool Sizing*. [Wiki do projeto](https://github.com/brettwooldridge/HikariCP/wiki/About-Pool-Sizing). Acesso em 17 nov. 2026.
+11. Chen, Tse-Hsun; Shang, Weiyi; Jiang, Zhen Ming; Hassan, Ahmed E.; Nasser, Mohamed; Flora, Parminder. *Detecting Performance Anti-patterns for Applications Developed using Object-Relational Mapping*. ICSE 2014. [PDF do artigo](https://petertsehsun.github.io/papers/peter_icse2014.pdf). Acesso em 17 nov. 2026.
+12. Redis. *Cache-aside pattern*. [Documentação](https://redis.io/docs/latest/develop/use-cases/cache-aside/). Acesso em 17 nov. 2026.
+13. PgBouncer. *Configuration*. [Documentação oficial](https://www.pgbouncer.org/config.html). Acesso em 17 nov. 2026.
+14. Docker. *JSON File logging driver* e *Configure logging drivers*. [Driver JSON](https://docs.docker.com/engine/logging/drivers/json-file/), [configuração](https://docs.docker.com/engine/logging/configure/). Acesso em 17 nov. 2026.
 
 ## 9. Uso de IA
 
-Usei IA para organizar hipóteses, revisar planos e redigir partes deste artigo e dos registros. Conferi os números nos arquivos de `resultados/`, validei os planos salvos e rodei o verificador de contrato; as fontes citadas foram abertas e conferidas.
+Ferramenta de IA usada: Codex (GPT-6). Foi usada para organizar hipóteses, revisar planos e apoiar a redação deste artigo e dos registros. Os números foram conferidos contra `resultados/`; a equivalência das visões foi registrada em `diagnostico/33-equivalencia-visoes-pedidos.txt`, e o verificador de contrato foi executado. As fontes técnicas listadas foram abertas e conferidas.

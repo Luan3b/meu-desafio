@@ -33,6 +33,8 @@ Cada link abre a ficha completa da ideia: fonte da hipótese, status, medianas a
 | 25 | [Isolar a rota `/pedidos`](#25--isolar-o-efeito-da-otimização-de-pedidos) | 2,25; 28.415,7 ms → 2,88; 26.848,2 ms | Isolamento; rota caiu 97,4% no p95 |
 | 26 | [API 0,5 para 0,75 CPU](#26--aumentar-o-limite-de-cpu-da-api-de-05-para-075) | 596,40; 71,5 ms → 884,13; 45,4 ms | Medido; CPU extra revertida |
 | 27 | [API 0,75 para 1 CPU](#27--aumentar-o-limite-de-cpu-da-api-de-075-para-10) | — | Duas medições; sem conclusão |
+| 28 | [Remover corpo da resposta do log](#28--remover-o-corpo-da-resposta-do-log) | 559,11; 74,2 ms → 571,21; 74,8 ms | Aplicado; grande redução de log, desempenho inconclusivo |
+| 29 | [Comparação sequencial original e final](#29--comparação-sequencial-original-e-final) | Original instável → 612,73; 70,7 ms | Limites iguais; contrato mantido; vazão original não comparável |
 
 ## 01 — Pool de conexões
 
@@ -290,3 +292,21 @@ Cada link abre a ficha completa da ideia: fonte da hipótese, status, medianas a
 - **Execuções parciais:** [111750](resultados/20261110-111750-27-api-cpu-1/) e [111918](resultados/20261110-111918-27-api-cpu-1/). Ambas concluíram sem erros e registraram contexto limpo, mas não formam as três medições necessárias para uma conclusão comparável.
 - **Configuração restaurada:** API em 0,5 CPU e 256 MB; banco em 1 CPU e 512 MB. `docker compose up -d --build` recriou os serviços e `scripts/verificar-contrato.sh comparar` confirmou “Contrato mantido” nas 42 respostas. As otimizações de código e banco permanecem aplicadas.
 - **Status:** experimento cancelado após duas medições, sem conclusão de desempenho; limites originais restaurados e contrato revalidado.
+
+## 28 — Remover o corpo da resposta do log
+
+- **Hipótese:** parar de serializar cada resposta inteira no log da API pode reduzir CPU e uso de disco sem alterar o que a rota devolve ao cliente.
+- **Mudança:** removido apenas o campo `resposta: corpo` do `console.log` em `api/src/server.js`; método, URL, status e duração continuam registrados.
+- **Antes:** três medições com `VUS=20`, `DURACAO=60s`, `SEMENTE=42`: [222357](resultados/20261116-222357-28-log-resposta-antes/), [222522](resultados/20261116-222522-28-log-resposta-antes/) e [222647](resultados/20261116-222647-28-log-resposta-antes/). Todas sem erros e com contrato mantido. Medianas: 559,11 req/s, p95 74,2 ms, CPU API 50,4%, CPU banco 43,1%, memória API 31,1 MiB e banco 166,8 MiB.
+- **Depois:** três medições com os mesmos parâmetros: [222925](resultados/20261116-222925-28-log-resposta-depois/), [223052](resultados/20261116-223052-28-log-resposta-depois/) e [223220](resultados/20261116-223220-28-log-resposta-depois/). Todas sem erros e com contrato mantido. Medianas: 571,21 req/s, p95 74,8 ms, CPU API 50,7%, CPU banco 45,7%, memória API 27,8 MiB e banco 154,9 MiB.
+- **Log:** [medição do tamanho](diagnostico/32-log-resposta-antes-depois.txt). O volume bruto caiu de 149.770.008 para 10.446.522 bytes (93,02%), com totais semelhantes de requisições. A contagem foi feita após as três rodadas em cada etapa.
+- **Conclusão:** manter a remoção do corpo por reduzir substancialmente o volume de log. As medianas de vazão e p95 variaram pouco e em direções distintas; não atribuo a mudança um ganho confiável de desempenho.
+- **Status:** aplicada, três medições antes e depois, contrato mantido.
+
+## 29 — Comparação sequencial original e final
+
+- **Objetivo:** repetir três cargas no código original e depois três no estado final, na mesma máquina, com `VUS=20`, `DURACAO=60s`, aquecimento de 15s e `SEMENTE=42`; os limites da API e do banco foram os mesmos em ambas as versões.
+- **Original:** [223712](resultados/20261116-223712-29-comparacao-original/), [224132](resultados/20261116-224132-29-comparacao-original/) e [080319](resultados/20261117-080319-29-comparacao-original/). Mediana de p95: 33.970 ms; duas execuções tiveram um timeout cada, e uma reportou 0,00 req/s apesar de 138 requisições. Por isso, a vazão da versão original não é uma base confiável para calcular multiplicador. A CPU mediana foi 8,3% na API e 100,1% no banco; memória média mediana 30,9 MiB e 241,8 MiB, respectivamente.
+- **Final:** [080659](resultados/20261117-080659-29-comparacao-final/), [080825](resultados/20261117-080825-29-comparacao-final/) e [080949](resultados/20261117-080949-29-comparacao-final/). Todas sem erros e com contrato mantido. Medianas: 612,73 req/s, p95 70,7 ms, CPU API 50,9%, CPU banco 45,1%, memória média API 30,0 MiB e banco 276,5 MiB.
+- **Contrato e equivalência:** as 42 respostas foram mantidas. A comparação bidirecional das visões de posições e totais por status teve zero diferenças em ambos os sentidos, registrada em [SQL](diagnostico/33-equivalencia-visoes-pedidos.sql) e [saída](diagnostico/33-equivalencia-visoes-pedidos.txt).
+- **Conclusão:** a versão final reproduziu cerca de 611–613 req/s e p95 de 70,5–71,9 ms nas três rodadas, com os mesmos limites. O baseline original sofreu timeouts e instabilidade; os dados comprovam a lentidão original e o comportamento final, mas não suportam um percentual confiável de aumento de vazão entre estas seis rodadas.

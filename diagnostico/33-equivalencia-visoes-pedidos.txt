@@ -1,0 +1,12 @@
+Diferencas: contagem por status (esperado 0)
+ diferencas 
+------------
+          0
+(1 row)
+
+Diferencas: posicao por status (esperado 0)
+ diferencas 
+------------
+          0
+(1 row)
+

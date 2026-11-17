@@ -1,0 +1,9 @@
+Experimento 28 — tamanho do log do container da API
+
+Metodo: bytes emitidos por `docker logs desafio-performance-api-1 | wc -c`, ao fim das tres rodadas antes e depois da mudanca. Os dados abaixo foram anotados durante o experimento; a pasta de resultados registra as cargas e recursos.
+
+Antes: 149770008 bytes em 99830 requisicoes nas tres rodadas.
+Depois: 10446522 bytes em 100788 requisicoes nas tres rodadas.
+Reducao bruta do volume: 93.02%.
+
+O volume caiu apesar de um total de requisicoes semelhante. As medianas de vazao e p95 nao mostram um ganho de desempenho conclusivo; a evidencia forte e a reducao do volume de log. O endpoint manteve o contrato nas 42 respostas.

@@ -1,38 +1,59 @@
 # Próximos testes
 
-Este arquivo registra ideias pesquisadas que não foram aplicadas na versão entregue. Elas não têm resultados de desempenho neste projeto. O objetivo é mostrar como poderiam ser avaliadas e que recursos adicionais seriam necessários.
+Ideias pesquisadas, mas ainda não aplicadas nem medidas como mudança de desempenho neste projeto. Cada ficha descreve uma hipótese, não um resultado. O teste de retirar o corpo da resposta do log já foi feito no [experimento 28](experimentos.md#28--remover-o-corpo-da-resposta-do-log); ele reduziu o volume de log em 93,02%, sem evidência conclusiva de ganho de vazão.
 
-## 1. Identificar consultas dominantes na versão otimizada
+## 1. Atualizar as visões com `REFRESH ... CONCURRENTLY`
 
-- **Origem:** a documentação do PostgreSQL descreve `pg_stat_statements` como extensão para acompanhar estatísticas de planejamento e execução das consultas; o projeto já usou essa extensão como diagnóstico na versão inicial ([experimento 07](experimentos.md#07--diagnóstico-de-consultas-com-pg_stat_statements)).
-- **Hipótese:** repetir o levantamento na versão final pode revelar uma consulta que passou a dominar depois das otimizações feitas.
-- **Como testar:** habilitar a extensão apenas no ambiente de diagnóstico, zerar suas estatísticas, executar a carga padrão sem misturar aquecimento e verificação de contrato na janela analisada, salvar a saída e comparar tempo total, chamadas e tempo médio por consulta. Depois, remover a instrumentação e confirmar que os limites padrão foram restaurados.
-- **Custo e requisito:** exige reiniciar/reconfigurar temporariamente o PostgreSQL e consome recursos de instrumentação. O resultado serve para escolher uma hipótese, não como medição final de desempenho. Uma mudança só seria aceita após o ciclo normal de contrato e três medições.
-- **Fonte:** [PostgreSQL 16 — `pg_stat_statements`](https://www.postgresql.org/docs/16/pgstatstatements.html).
+- **Hipótese:** visões atualizadas podem manter os relatórios frescos sem bloquear consultas durante a atualização concorrente.
+- **Como testar:** adicionar índices únicos apropriados às visões, produzir alterações controladas de pedidos e itens, executar refresh concorrente e medir tempo de atualização, atraso dos dados, p95 e CPU durante a carga.
+- **Requisito e limite:** a API atual é somente leitura. `CONCURRENTLY` exige índice único adequado e ainda calcula a visão inteira; o experimento precisa definir uma frequência de atualização e uma tolerância explícita de defasagem.
+- **Fonte:** [PostgreSQL 16 — REFRESH MATERIALIZED VIEW](https://www.postgresql.org/docs/16/sql-refreshmaterializedview.html).
 
-## 2. Medir custo de atualização das visões materializadas
+## 2. Medir o custo de criação, armazenamento e atualização das visões
 
-- **Origem:** a documentação explica que uma visão materializada persiste os resultados e precisa ser atualizada com `REFRESH MATERIALIZED VIEW` ([PostgreSQL 16 — Materialized Views](https://www.postgresql.org/docs/16/rules-materializedviews.html)). O ganho de leitura observado neste desafio depende de dados estáticos e da inicialização do banco.
-- **Hipótese:** em um sistema que recebe pedidos e itens continuamente, o tempo de atualização e a defasagem dos resumos podem superar a economia obtida nas leituras.
-- **Como testar:** criar um cenário separado com uma taxa definida de inserções/alterações, medir latência e vazão de escrita, duração da atualização, atraso até o resumo refletir a mudança e latência de leitura durante a atualização. Comparar atualização completa com estratégias incrementais, mantendo o mesmo conjunto de dados e carga.
-- **Custo e requisito:** o teste fornecido é somente de leitura; seria necessário um gerador de escrita separado, dados com alterações controladas e uma regra explícita de frescor. Não alterar `carga/` para encaixar esse cenário no benchmark existente.
-- **Fontes:** [PostgreSQL 16 — Materialized Views](https://www.postgresql.org/docs/16/rules-materializedviews.html); [PostgreSQL 16 — `REFRESH MATERIALIZED VIEW`](https://www.postgresql.org/docs/16/sql-refreshmaterializedview.html).
+- **Hipótese:** a economia nas leituras compensa o tempo de inicialização, espaço ocupado e custo de refresh das visões materializadas.
+- **Como testar:** cronometrar a criação do banco com e sem as visões, medir o espaço de cada uma e executar `REFRESH MATERIALIZED VIEW` com dados equivalentes. Salvar comandos e saídas em `diagnostico/`.
+- **Requisito e limite:** recriar o banco sintético em cópias controladas; o resultado de uma atualização isolada não representa por si só a carga de escrita de produção.
+- **Fonte:** [PostgreSQL 16 — Materialized Views](https://www.postgresql.org/docs/16/rules-materializedviews.html) e [REFRESH MATERIALIZED VIEW](https://www.postgresql.org/docs/16/sql-refreshmaterializedview.html).
 
-## 3. Quantificar o custo dos índices sob escrita
+## 3. Paginação por chave (*keyset pagination*) em uma rota nova
 
-- **Origem:** índices aceleram buscas que conseguem utilizá-los, mas ocupam armazenamento e precisam acompanhar alterações nas tabelas. O índice trigram e os índices B-tree foram avaliados aqui com carga de leitura.
-- **Hipótese:** sob inserções e atualizações frequentes, o custo de manter índices — especialmente o GIN de `pg_trgm` — pode reduzir a vazão de escrita e mudar quais índices valem a pena.
-- **Como testar:** medir uma carga de escrita representativa com o conjunto atual de índices; repetir em cópia equivalente sem um índice por vez; comparar vazão de escrita, latências de leitura, espaço em disco e tempo de recuperação. A remoção só seria considerada se as consultas correspondentes continuassem dentro de uma meta definida.
-- **Custo e requisito:** requer carga de escrita e uma cópia descartável do banco. O benchmark atual não escreve e não permite concluir sobre esse custo.
-- **Fontes:** [PostgreSQL 16 — Índices](https://www.postgresql.org/docs/16/indexes.html); [PostgreSQL 16 — `pg_trgm`](https://www.postgresql.org/docs/16/pgtrgm.html).
+- **Hipótese:** um cursor baseado na última chave da página pode manter o custo estável em páginas profundas e evitar a visão de posições usada em `/pedidos`.
+- **Como testar:** criar uma rota experimental separada, como `/v2/pedidos`, com cursor por `(criado_em, id)` e comparar páginas iniciais e profundas com a implementação atual, incluindo ordem, duplicação e omissão de linhas ao inserir pedidos entre páginas.
+- **Requisito e limite:** paginação por cursor muda a interface e não substitui a rota atual sem autorização para mudar o contrato; não comparar o resultado de uma rota nova como se fosse uma otimização contratualmente equivalente.
+- **Fontes:** Markus Winand, [Paging Through Results](https://use-the-index-luke.com/sql/partial-results/fetch-next-page) e [keyset pagination](https://use-the-index-luke.com/no-offset).
 
-## 4. Explorar capacidade em níveis de concorrência diferentes
+## 4. Sensibilidade do tamanho do pool a mais concorrência
 
-- **Origem:** as comparações principais usam `VUS=20`, conforme o teste fornecido. Os resultados descrevem esse cenário e não determinam o ponto de saturação para outras quantidades de usuários.
-- **Hipótese:** o pool de duas conexões e as consultas consolidadas podem ter outro ponto de equilíbrio com concorrência ou mistura de rotas diferentes.
-- **Como testar:** em uma experiência exploratória separada, variar a concorrência em degraus e registrar vazão, p95, erros, CPU, memória e conexões ativas. Não comparar diretamente esses resultados com os números oficiais a 20 usuários; para qualquer mudança escolhida, repetir antes/depois com os mesmos parâmetros.
-- **Custo e requisito:** mais tempo de execução e uma definição de perfil de tráfego real. Os resultados atuais não provam comportamento sob concorrência diferente.
+- **Hipótese:** o pool de duas conexões escolhido para 20 usuários pode deixar de ser adequado com outra concorrência ou mistura de rotas.
+- **Como testar:** em uma matriz exploratória separada, medir `VUS=5, 20, 50, 100` com pool de 1, 2, 3 e 5; registrar vazão, p95, erros, conexões ativas, CPU e memória. Qualquer tamanho escolhido deve passar depois pelo ciclo normal de três medições comparáveis.
+- **Requisito e limite:** executar combinações na mesma máquina, sem cargas paralelas; a recomendação de dimensionamento é ponto de partida, não substitui medir a aplicação real.
+- **Fonte:** [HikariCP — About Pool Sizing](https://github.com/brettwooldridge/HikariCP/wiki/About-Pool-Sizing).
 
-## Evidência usada para encerrar a rodada atual
+## 5. Localizar a consulta dominante na versão final
 
-Os diagnósticos [top produtos](diagnostico/30-top-produtos-atual.txt) e [cliente por ID](diagnostico/31-cliente-por-id-atual.txt) não indicaram uma nova mudança óbvia naquelas consultas. Isso não prova que não exista outro gargalo: uma próxima rodada deve começar com atribuição de tempo por consulta na versão otimizada, sem presumir de antemão qual rota precisa mudar.
+- **Hipótese:** depois das mudanças, outra consulta pode dominar o tempo total e apontar o próximo alvo com maior potencial.
+- **Como testar:** coletar `pg_stat_statements` numa janela que contenha apenas a carga planejada; ordenar por tempo total, chamadas e tempo médio; salvar saída e planos relevantes. Remover a instrumentação temporária e confirmar limites e contrato antes de uma medição oficial.
+- **Requisito e limite:** a instrumentação altera o ambiente e pode adicionar custo. A saída serve para formar uma hipótese; qualquer mudança continua exigindo teste isolado e três medições.
+- **Fonte:** [PostgreSQL 16 — pg_stat_statements](https://www.postgresql.org/docs/16/pgstatstatements.html).
+
+## 6. Cache-aside para leituras repetidas
+
+- **Hipótese:** armazenar por pouco tempo respostas de leitura repetidas, especialmente de `/clientes/:id`, pode reduzir consultas ao PostgreSQL.
+- **Como testar:** começar por cache local e comparar com cache externo; definir TTL, chaves, política de invalidação e comportamento em cache miss; medir vazão, p95, CPU, memória, taxa de acerto e custo do serviço adicional.
+- **Requisito e limite:** os dados de exemplo são estáticos, mas uma aplicação com escrita precisa invalidar ou atualizar as chaves. Um cache externo acrescenta serviço e consumo de recursos que devem aparecer na comparação.
+- **Fonte:** [Redis — Cache-aside pattern](https://redis.io/docs/latest/develop/use-cases/cache-aside/) e [guia Node.js](https://redis.io/docs/latest/develop/use-cases/cache-aside/nodejs/).
+
+## 7. PgBouncer com mais de um processo da API
+
+- **Hipótese:** um pooler externo pode compartilhar conexões reais ao PostgreSQL quando há vários processos ou réplicas da API.
+- **Como testar:** executar ao menos duas réplicas, adicionar PgBouncer, definir o modo de pool e comparar conexões clientes/servidor, vazão, p95, CPU e memória com o pool interno do `pg` sem PgBouncer.
+- **Requisito e limite:** com uma única API e pool pequeno, um serviço extra pode não trazer benefício. Confirmar também compatibilidade de transações e prepared statements para o modo escolhido.
+- **Fonte:** [PgBouncer — Configuration](https://www.pgbouncer.org/config.html).
+
+## 8. Rotacionar os logs do Docker
+
+- **Hipótese:** limitar tamanho e quantidade de arquivos de log evita crescimento de disco em execução prolongada.
+- **Como testar:** registrar tamanho do log após carga representativa, aplicar `max-size` e `max-file` ao serviço da API, repetir a carga e verificar espaço, retenção de logs, erros e impacto na aplicação.
+- **Requisito e limite:** o driver e as opções variam por configuração do Docker. Rotação limita retenção e deve ser dimensionada para preservar o período de diagnóstico necessário.
+- **Fontes:** Docker, [JSON File logging driver](https://docs.docker.com/engine/logging/drivers/json-file/) e [Configure logging drivers](https://docs.docker.com/engine/logging/configure/).
