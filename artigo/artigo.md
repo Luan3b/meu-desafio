@@ -2,21 +2,27 @@
 
 ## 1. Resumo
 
-A API de loja respondia lentamente sob uma carga de 20 usuários. Investiguei as consultas e medi cada alteração com o mesmo script. Na comparação sequencial mais recente, a versão final atingiu mediana de 612,73 req/s e p95 de 70,7 ms, mantendo API em 0,5 CPU/256 MB e PostgreSQL em 1 CPU/512 MB. Na versão original, a mediana do p95 foi 33.970 ms, mas duas das três rodadas tiveram timeout e uma reportou 0,00 req/s apesar de concluir 138 requisições; por isso não apresento um percentual confiável de aumento de vazão entre essas duas rodadas. O contrato foi mantido. O maior avanço veio de reduzir trabalho repetido no banco, pré-calcular agregações e substituir a paginação profunda por busca direta da posição.
+A API de loja era lenta sob carga. As mudanças reduziram consultas repetidas, pré-calcularam dados usados por relatórios e eliminaram o custo de percorrer páginas anteriores em `/pedidos`. Na versão final, com API em 0,5 CPU/256 MB e banco em 1 CPU/512 MB, a mediana foi 612,73 req/s e o p95 foi 70,7 ms. A comparação sequencial confirmou o contrato, mas o baseline teve timeouts e uma inconsistência na vazão reportada; portanto, não calculo um percentual geral confiável de aumento de req/s.
 
 ## 2. Contexto e diagnóstico
 
-A API usa Node.js, Express e PostgreSQL 16, com 100 mil clientes, 20 mil produtos, 500 mil pedidos e 1,5 milhão de itens. A carga fornecida chama sete rotas. Na linha de base original repetida em sequência com a versão final, as três pastas estão registradas no experimento 29. O p95 mediano foi 33.970 ms; duas execuções tiveram timeout e uma delas mostrou inconsistência na vazão reportada. Em comparação, as três rodadas finais ficaram entre 610,16 e 612,97 req/s e entre 70,5 e 71,9 ms de p95.
+A API usa Node.js 20, Express e PostgreSQL 16 (100 mil clientes, 20 mil produtos, 500 mil pedidos e 1,5 milhão de itens). A carga (`VUS=20`, `DURACAO=60s`, `SEMENTE=42`) exercita sete rotas. A primeira linha de base ([114000](../resultados/20261106-114000-00-linha-de-base/resumo.txt)) registrou mediana de 2,39 req/s e p95 de 26.801 ms, com o banco em ~100% de 1 CPU ([recursos.txt](../resultados/20261106-114000-00-linha-de-base/recursos.txt)). Esse resultado pertence à sequência inicial dos experimentos. Já na comparação sequencial feita ao final ([experimento 29](../experimentos.md#29--comparação-sequencial-original-e-final)), as três execuções originais tiveram p95 mediano de 33.970 ms; duas tiveram timeout e uma reportou 0,00 req/s apesar de 138 requisições ([224132](../resultados/20261116-224132-29-comparacao-original/resumo.txt)). A versão final atingiu 610,16 a 612,97 req/s e p95 de 70,5 a 71,9 ms ([080825](../resultados/20261117-080825-29-comparacao-final/resumo.txt)). Como são sequências de medição diferentes e a comparação final do original foi instável, não calculo um percentual geral confiável de aumento de vazão.
 
-Usei `EXPLAIN (ANALYZE, BUFFERS)` para observar leituras, ordenações e índices. Os planos mostraram varreduras grandes, agregações repetidas e custo crescente do `OFFSET`. Hipóteses, resultados e pastas estão em [experimentos.md](../experimentos.md).
+Coletei `pg_stat_statements` ([09-consultas](../diagnostico/09-consultas-pg-stat-statements.txt)) e planos `EXPLAIN (ANALYZE, BUFFERS)`: loops e varreduras em pedidos do cliente ([03-planos](../diagnostico/03-planos-antes-indices.txt)), ordenação externa de 90 MB em `/pedidos` ([05-planos](../diagnostico/05-planos-status-antes.txt), [28-offset](../diagnostico/28-pedidos-pagina-offset-atual.txt)), agregações caras em relatórios ([07-vendas](../diagnostico/07-vendas-por-dia-antes.txt), [10-custosas](../diagnostico/10-planos-consultas-mais-custosas.txt)), varreduras em e-mail ([14-email](../diagnostico/14-clientes-email-antes.txt)) e busca de produtos ([16-produtos](../diagnostico/16-produtos-busca-antes.txt)), além do corpo inteiro nos logs ([32-log](../diagnostico/32-log-resposta-antes-depois.txt)). Só `/clientes/:id` já usava chave primária ([31-cliente](../diagnostico/31-cliente-por-id-atual.txt)).
 
-**Hipóteses de causa:** a aplicação repetia viagens ao banco e agregações em cada chamada; algumas consultas examinavam muitas linhas sem um índice adequado; e `OFFSET` fazia o banco percorrer resultados que não seriam devolvidos. A leitura isolada de `/clientes/:id` já usa a chave primária e não mostrou um alvo claro para nova mudança.
+Hipótese de causa:
+- A API abria conexão por consulta e fazia buscas sequenciais (N+1) na mesma requisição.
+- Faltavam índices para filtros por cliente, status, `lower(email)` e `ILIKE`, causando varreduras completas.
+- Os relatórios reagregavam até 1,5 milhão de itens a cada chamada em dados estáticos.
+- O `OFFSET` em `/pedidos` obrigava o banco a ordenar e descartar milhares de linhas em páginas profundas.
 
 ## 3. Estado da arte
 
 ### Reduzir consultas e linhas processadas
 
 A documentação do node-postgres recomenda reutilizar conexões com um pool limitado; abrir conexões repetidamente acrescenta o custo do handshake e clientes demais também pressionam o servidor ([node-postgres: pooling](https://node-postgres.com/features/pooling)). Um estudo acadêmico sobre o problema N+1 encontrou que consolidar consultas pode reduzir viagens ao banco preservando o comportamento, mas seus resultados são de aplicações Sequelize e não garantem o mesmo ganho nesta API SQL ([Turcotte, Aldrich e Tip, ASE 2022](https://doi.org/10.1145/3551349.3556911)).
+
+Chen et al. também estudaram antipadrões de desempenho em aplicações ORM e reportaram melhorias de resposta de até 98% (35% em média) ao corrigir os casos analisados. Esse resultado motiva investigar trabalho excessivo no acesso a dados, mas não prevê o ganho desta API: o estudo usa aplicações ORM, enquanto este projeto faz SQL diretamente ([Chen et al., ICSE 2014](https://petertsehsun.github.io/papers/peter_icse2014.pdf)).
 
 ### Índices e diagnóstico por planos
 
@@ -28,62 +34,45 @@ Uma visão materializada armazena os resultados de uma consulta e pode ser atual
 
 ## 4. Alternativas consideradas
 
-| Alternativa | Custo | Desempenho esperado | Risco | Esforço |
+| Alternativa | Custo | Desempenho | Risco | Esforço |
 |---|---|---|---|---|
-| Aumentar CPU do banco ou da API | Mais recurso reservado | Pode elevar vazão quando há saturação | Compra desempenho sem reduzir trabalho; custo maior | Baixo |
-| Criar índices para consultas observadas | Espaço e manutenção em escrita | Busca seletiva pode ler menos páginas | Índice pode não ser escolhido ou piorar escrita | Baixo a médio |
-| Reescrever consultas e consolidar viagens | Mais cuidado no código e no contrato | Menos linhas, consultas e viagens | Ordenação, nulos e tipos da resposta podem mudar | Médio |
-| Pré-calcular resumos e posições | Espaço e atualização/frescor | Evita repetir agregações ou percorrer offsets | Resultado fica desatualizado se houver escrita | Médio |
+| Aumentar CPU (banco ou API) | Mais recurso reservado | Eleva vazão sob saturação | Compra capacidade sem reduzir trabalho | Baixo |
+| Criar índices específicos | Espaço e manutenção em escrita | Busca seletiva lê menos páginas | Pode não ser usado ou custar em escrita | Baixo a médio |
+| Reescrever e consolidar consultas | Cuidado no código e contrato | Menos linhas e viagens ao banco | Pode alterar ordem, nulos ou tipos | Médio |
+| Pré-calcular resumos e posições | Espaço e atualização | Evita reagregar ou varrer offsets | Defasagem se houver escrita | Médio |
 
-Descartei aumentar a máquina como solução final: o teste temporário elevou a vazão, mas aumentou o recurso reservado. Os custos e demais tentativas estão no registro de experimentos.
+Descartei aumentar a máquina como solução final: o teste temporário com mais CPU elevou a vazão, mas aumentou o recurso reservado sem eliminar o trabalho redundante das consultas. O objetivo do desafio é reduzir o custo computacional dentro do mesmo orçamento de hardware (0,5 CPU na API e 1,0 CPU no banco).
+
+A paginação por chave (*keyset pagination*) também evita descartar muitas linhas em páginas profundas, mas usa um cursor em vez do número de página. Como isso altera os parâmetros e o formato esperado pelo verificador de contrato, ela não pode substituir `/pedidos?status=&pagina=` diretamente; precisaria ser exposta como uma rota separada ([Markus Winand, seek method](https://use-the-index-luke.com/sql/partial-results/fetch-next-page)).
 
 ## 5. Solução escolhida e por quê
 
 Mantive mudanças com evidência de ganho e contrato preservado: pool menor, consultas consolidadas, índices de busca, resumos materializados e posições pré-calculadas. A decisão usa três execuções, não apenas um `EXPLAIN`.
 
-Não mantive o índice coberto, a projeção isolada de colunas, o aumento de `work_mem` ou pool de três conexões, pois as medições não justificaram o custo ou mostraram resultado pior/inconclusivo. As visões materializadas são adequadas ao banco sintético e somente leitura deste desafio; uma aplicação com escrita exigiria uma política de atualização e teste de frescor.
+Não mantive o índice coberto, a projeção isolada de colunas, o aumento de `work_mem` ou pool de três conexões, pois as medições não justificaram o custo ou mostraram resultado pior/inconclusivo. As visões materializadas são adequadas ao banco sintético e somente leitura deste desafio; uma aplicação com escrita exigiria uma política de atualização e teste de frescor, pois `REFRESH MATERIALIZED VIEW` substitui o conteúdo da visão ([documentação PostgreSQL](https://www.postgresql.org/docs/18/sql-refreshmaterializedview.html)).
 
 ## 6. Experimento e resultado
 
-As medições usaram `VUS=20`, `DURACAO=60s` e `SEMENTE=42`. A tabela resume os 29 experimentos; cada link abre a ficha com hipótese, fonte, pastas de resultados e recursos medidos.
+As mudanças foram medidas com `VUS=20`, `DURACAO=60s` e `SEMENTE=42`. A tabela reúne mudanças mantidas, testes sem ganho (revertidos) e a comparação final; a tabela completa das 29 etapas está em [experimentos.md](../experimentos.md).
 
-| Mudança (detalhes e pastas) | p95 ms antes→depois | req/s antes→depois | CPU/RAM observadas | Decisão |
-|---|---:|---:|---|---|
-| [01 Pool](../experimentos.md#01--pool-de-conexões) | 26.801→25.227,2 | 2,39→2,86 | DB CPU 100,2→99,3%; API RAM 35,2→38,3 MiB | Ganho pequeno |
-| [02 JOIN cliente-pedidos](../experimentos.md#02--consulta-única-para-pedidos-do-cliente) | 25.227,2→10.916,1 | 2,86→4,21 | DB CPU 99,3→99,4%; pico RAM 479→502,4 MiB | Mantida |
-| [03 Índices pedidos/itens](../experimentos.md#03--índices-para-pedidos-do-cliente) | 10.916,1→9.058 | 4,21→6,25 | DB CPU perto de 100%; índices 51 MB | Mantidos |
-| [04 Índice status](../experimentos.md#04--índice-para-pedidos-por-status) | 9.058→6.202 | 6,25→10,13 | DB CPU 99,8→99,7%; pico RAM 497,8→478,3 MiB | Parcial |
-| [05 Menos coluna](../experimentos.md#05--remover-coluna-não-usada-em-vendas-por-dia) | 6.202→4.003,2 | 10,13→12,87 | API RAM 43,9→32 MiB; DB próximo do limite | Mantida |
-| [06 Banco 2 CPU](../experimentos.md#06--diagnóstico-temporário-com-2-cpus-no-banco) | 4.003,2→2.117,8 | 12,87→24,05 | DB CPU 100,3→200,4%; RAM máx. 473,9 MiB | Revertido |
-| [07 Diagnóstico SQL](../experimentos.md#07--diagnóstico-de-consultas-com-pg_stat_statements) | Não comparável | 13,36 no diagnóstico | DB CPU 100,7% | Sem mudança |
-| [08 Resumo top produtos](../experimentos.md#08--pré-computar-os-totais-de-top-produtos) | 4.395→1.891,2 | 13,31→26,17 | DB CPU 100,0→100,2%; RAM 367,1→213,3 MiB | Mantido |
-| [09 Filtro de data](../experimentos.md#09--usar-intervalo-direto-de-timestamp-no-relatório-diário) | 1.698,6→1.407,5 | 27,43→30,88 | DB CPU 100,8→100,3% | Mantido |
-| [10 Projeção](../experimentos.md#10--selecionar-somente-colunas-usadas-na-listagem-de-pedidos) | 1.409,3→1.539,6 | 30,40→27,72 | DB CPU 99,9→96,6% | Revertida |
-| [11 Índice email](../experimentos.md#11--índice-funcional-para-busca-de-cliente-por-e-mail) | 1.400,8→1.193,8 | 30,28→40,60 | DB CPU 100→99,7%; índice 4.792 kB | Mantido |
-| [12 Índice trigram](../experimentos.md#12--índice-trigram-para-busca-de-produtos) | 1.246,7→1.399,4 | 40,14→41,81 | DB CPU 99,1→95,5%; índice 1.144 kB | Misto |
-| [13 Resumo contagem](../experimentos.md#13--pré-computar-a-contagem-exata-de-pedidos-por-status) | 1.212,2→1.209,5 | 43,62→46,33 | DB CPU 97,2→94,0%; resumo 16 kB | Ganho modesto |
-| [14 Índice coberto](../experimentos.md#14--tornar-a-paginação-profunda-de-pedidos-coberta-pelo-índice) | 1.190,8→1.193,7 | 48,08→46,87 | DB CPU 94,9→95,6%; índice 21 MB | Removido |
-| [15 `work_mem`](../experimentos.md#15--avaliar-work_mem-para-a-ordenação-de-páginas-profundas) | Sem carga comparável | — | 64 MB evitou temp numa amostra | Não aplicado |
-| [16 Pool 10→5](../experimentos.md#16--reduzir-o-pool-de-conexões-de-10-para-5) | 1.190,8→1.005,5 | 48,08→50,35 | DB CPU 94,9→91,7%; pico RAM 507,3→487,9 MiB | Mantido então |
-| [17 Pool 5→2](../experimentos.md#17--reduzir-o-pool-de-conexões-de-5-para-2) | 1.005,5→836,7 | 50,35→55,11 | DB CPU 91,7→83,8%; RAM 367,6→219,4 MiB | Mantido então |
-| [18 Pool 2→1](../experimentos.md#18--reduzir-o-pool-de-conexões-de-2-para-1) | 836,7→714,5 | 55,11→62,23 | DB CPU 83,8→73,9%; RAM 219,4→165,1 MiB | Mantido então |
-| [19 Resumo diário](../experimentos.md#19--pré-computar-as-vendas-agregadas-por-dia) | 714,5→308,7 | 62,23→197,63 | DB CPU 73,9→91,4%; RAM 165,1→167,5 MiB | Mantido |
-| [20 JOIN cliente-pedidos](../experimentos.md#20--buscar-cliente-e-pedidos-em-uma-consulta) | 308,7→299,5 | 197,63→207,91 | DB CPU 91,4→94,7% | Mantido |
-| [21 Uma consulta pedidos](../experimentos.md#21--buscar-contagem-e-página-de-pedidos-em-uma-consulta) | 299,5→207,2 | 207,91→274,35 | DB CPU 94,7→87,9% | Mantida |
-| [22 Pool 1→2](../experimentos.md#22--reavaliar-tamanho-do-pool-após-reduzir-as-consultas-por-requisição) | 207,2→202,0 | 274,35→288,46 | DB CPU 87,9→100,4% | Misto |
-| [23 Pool 2→3](../experimentos.md#23--aumentar-o-pool-atual-de-2-para-3) | 202,0→279,9 | 288,46→218,43 | DB CPU 100,4→100,2% | Rejeitado |
-| [24 Posição pedidos](../experimentos.md#24--pré-calcular-a-posição-de-cada-pedido-por-status) | 202→71,5 | 288,46→596,40 | DB CPU 100,4→43,6%; RAM 160,8→172 MiB | Mantida |
-| [25 `/pedidos` isolado](../experimentos.md#25--isolar-o-efeito-da-otimização-de-pedidos) | 28.415,7→26.848,2 | 2,25→2,88 | DB CPU 99,3→100,3% | Só rota: p95 -97,4% |
-| [26 API 0,5→0,75 CPU](../experimentos.md#26--aumentar-o-limite-de-cpu-da-api-de-05-para-075) | 71,5→45,4 | 596,40→884,13 | API CPU 50,9→77%; DB 43,6→67,5% | Revertida |
-| [27 API 0,75→1 CPU](../experimentos.md#27--aumentar-o-limite-de-cpu-da-api-de-075-para-10) | Incompleto | Duas execuções | Configuração padrão restaurada | Sem conclusão |
-| [28 Reduzir log da API](../experimentos.md#28--remover-o-corpo-da-resposta-do-log) | 74,2→74,8 | 559,11→571,21 | API CPU 50,4→50,7%; volume de log -93,02% | Menos disco; desempenho inconclusivo |
-| [29 Comparação sequencial](../experimentos.md#29--comparação-sequencial-original-e-final) | 33.970→70,7 | Original inconsistente→612,73 | DB CPU 100,1→45,1%; API 8,3→50,9% | Contrato mantido; baseline instável |
+| Mudança | Hipótese | p95 antes → depois | req/s antes → depois | CPU/memória | Pastas de resultados | Conclusão |
+|---|---|---|---|---|---|---|
+| [02-pedidos-join](../experimentos.md#02--consulta-única-para-pedidos-do-cliente) | `LEFT JOIN` elimina N+1 da rota | 25.227,2→10.916,1 ms | 2,86→4,21 | DB CPU 99,3→99,4%; RAM máx 479→502,4 MiB | [155548](../resultados/20261106-155548-01-pool/)→[160838](../resultados/20261106-160838-02-pedidos-join/) | p95 rota -62,8%; mantida. |
+| [03-indices-cliente](../experimentos.md#03--índices-para-pedidos-do-cliente) | Índices B-tree evitam Seq Scan | 10.916,1→9.058 ms | 4,21→6,25 | DB CPU ~100%; +51 MB disco | [160838](../resultados/20261106-160838-02-pedidos-join/)→[162035](../resultados/20261106-162035-03-indices-pedidos-cliente/) | p95 rota -61,1%; mantida. |
+| [08-top-produtos](../experimentos.md#08--pré-computar-os-totais-de-top-produtos) | Visão evita agregar 1,5M itens | 4.395→1.891,2 ms | 13,31→26,17 | DB CPU ~100%; RAM 367,1→213,3 MiB | [120735](../resultados/20261109-120735-08-top-produtos-antes/)→[121509](../resultados/20261109-121509-08-top-produtos-depois/) | Vazão +96,6% (2,3 MB); mantida. |
+| [10-pedidos-colunas](../experimentos.md#10--selecionar-somente-colunas-usadas-na-listagem-de-pedidos) | Projetar 4 colunas reduz leitura | 1.409,3→1.539,6 ms | 30,40→27,72 | DB CPU 99,9→96,6% | [144654](../resultados/20261109-144654-10-pedidos-colunas-antes/)→[145210](../resultados/20261109-145210-10-pedidos-colunas-depois/) | Sem ganho (-8,8%); revertida. |
+| [14-indice-coberto](../experimentos.md#14--tornar-a-paginação-profunda-de-pedidos-coberta-pelo-índice) | `INCLUDE` acelera offset profundo | 1.190,8→1.193,7 ms | 48,08→46,87 | DB CPU 94,9→95,6%; 21 MB disco | [160330](../resultados/20261109-160330-14-paginacao-antes/)→[160956](../resultados/20261109-160956-14-paginacao-depois/) | Sem ganho (20k fetches); removido. |
+| [19-vendas-dia](../experimentos.md#19--pré-computar-as-vendas-agregadas-por-dia) | Visão diária evita reagregação | 714,5→308,7 ms | 62,23→197,63 | DB CPU 73,9→91,4%; API CPU 43,9→22,7% | [162951](../resultados/20261109-162951-18-pool-1/)→[163845](../resultados/20261109-163845-19-vendas-dia-depois/) | Vazão 3,18x (72 kB); mantida. |
+| [23-pool-3](../experimentos.md#23--aumentar-o-pool-atual-de-2-para-3) | Pool 2→3 eleva vazão | 202,0→279,9 ms | 288,46→218,43 | DB CPU 100,4→100,2% | [165831](../resultados/20261109-165831-22-pool-2-atual/)→[202604](../resultados/20261109-202604-23-pool-3/) | Vazão -24,3%; revertida. |
+| [24-pedidos-posicao](../experimentos.md#24--pré-calcular-a-posição-de-cada-pedido-por-status) | Posição elimina custo do `OFFSET` | 202,0→71,5 ms | 288,46→596,40 | DB CPU 100,4→43,6%; RAM 160,8→172 MiB | [165831](../resultados/20261109-165831-22-pool-2-atual/)→[103545](../resultados/20261110-103545-24-pedidos-posicao-depois/) | Vazão +106,8%; mantida. |
+| [26-api-cpu-075](../experimentos.md#26--aumentar-o-limite-de-cpu-da-api-de-05-para-075) | API em 0,75 CPU eleva vazão | 71,5→45,4 ms | 596,40→884,13 | API CPU 50,9→77,0%; DB CPU 43,6→67,5% | [103545](../resultados/20261110-103545-24-pedidos-posicao-depois/)→[111359](../resultados/20261110-111359-26-api-cpu-075/) | Exige +0,25 CPU; revertida. |
+| [29-comparacao](../experimentos.md#29--comparação-sequencial-original-e-final) | Final mantém limites e contrato | 33.970→70,7 ms | Instável→612,73 | API CPU 8,3→50,9%; DB CPU 100,1→45,1% | [224132](../resultados/20261116-224132-29-comparacao-original/)→[080825](../resultados/20261117-080825-29-comparacao-final/) | Limites mantidos; banco livre. |
 
-* A execução original do meio reportou 0,00 req/s apesar de 138 requisições; por isso não calculo um multiplicador para o par sequencial. As medianas de CPU vêm das três pastas do experimento 29: a API foi de 8,3% para 50,9% e o banco caiu de 100,1% para 45,1%, sem mudança nos limites. A memória média mediana foi 30,9→30,0 MiB na API e 241,8→276,5 MiB no banco. O uso de CPU da API cresceu para atender mais requisições, enquanto o trabalho do banco caiu. O teste isolado de `/pedidos` está em [diagnostico/isolamento-pedidos.md](../diagnostico/isolamento-pedidos.md): isoladamente, reduziu o p95 da rota de 26.795,9 para 696,9 ms, sem remover a lentidão das outras rotas originais.
+No experimento 29, a API usou mediana de 50,9% de CPU (limite 0,5 CPU) e o banco 45,1% (limite 1,0 CPU), contra 8,3% e 100,1% no original: a API trabalha mais porque atende muito mais vazão, enquanto o banco deixou de saturar. A memória média mediana ficou em 30,0 MiB na API (de 256 MB) e 276,5 MiB no banco (de 512 MB). No isolamento de `/pedidos` ([experimento 25](../experimentos.md#25--isolar-o-efeito-da-otimização-de-pedidos)), o p95 da rota caiu de 26.795,9 para 696,9 ms, mas o p95 geral seguiu em 26.848,2 ms, provando que havia múltiplos gargalos.
 
 ## 7. Limites e testes futuros
 
-Os resultados cobrem uma máquina, banco estático e 20 usuários. Mudanças interagem, então ganhos incrementais não se somam como contribuições individuais. Não medi escrita nem frescor contínuo das visões; o único isolamento contra o original foi `/pedidos`. Escrita, mais concorrência ou outra consulta dominante poderiam mudar a conclusão; as fichas estão em [proximos-testes.md](../proximos-testes.md).
+Os resultados valem para uma única máquina, banco estático de leitura e carga de 20 usuários virtuais. As mudanças interagem entre si, portanto os ganhos de cada etapa não devem ser somados isoladamente. A comparação sequencial do baseline original teve duas rodadas com timeout e uma inconsistência na vazão reportada; por isso a análise de vazão se apoia nas medições incrementais por etapa, e não em um percentual global antes/depois. Não medi carga de escrita nem o custo contínuo de atualização das visões materializadas. Uma carga com escritas frequentes, exigência de frescor imediato ou alta concorrência em múltiplas instâncias da API refutaria o uso de visões estáticas e o pool de duas conexões. As oito fichas para investigar esses cenários estão em [proximos-testes.md](../proximos-testes.md).
 
 ## 8. Referências
 
@@ -96,12 +85,14 @@ Os resultados cobrem uma máquina, banco estático e 20 usuários. Mudanças int
 7. PostgreSQL Global Development Group. *PostgreSQL 16: `pg_stat_statements`*. [Documentação](https://www.postgresql.org/docs/16/pgstatstatements.html). Acesso em 17 nov. 2026.
 8. PostgreSQL Global Development Group. *PostgreSQL 16: `REFRESH MATERIALIZED VIEW`*. [Documentação](https://www.postgresql.org/docs/16/sql-refreshmaterializedview.html). Acesso em 17 nov. 2026.
 9. Markus Winand. *Paging Through Results* e *We need tool support for keyset pagination*. [Seek method](https://use-the-index-luke.com/sql/partial-results/fetch-next-page), [keyset pagination](https://use-the-index-luke.com/no-offset). Acesso em 17 nov. 2026.
-10. HikariCP. *About Pool Sizing*. [Wiki do projeto](https://github.com/brettwooldridge/HikariCP/wiki/About-Pool-Sizing). Acesso em 17 nov. 2026.
-11. Chen, Tse-Hsun; Shang, Weiyi; Jiang, Zhen Ming; Hassan, Ahmed E.; Nasser, Mohamed; Flora, Parminder. *Detecting Performance Anti-patterns for Applications Developed using Object-Relational Mapping*. ICSE 2014. [PDF do artigo](https://petertsehsun.github.io/papers/peter_icse2014.pdf). Acesso em 17 nov. 2026.
-12. Redis. *Cache-aside pattern*. [Documentação](https://redis.io/docs/latest/develop/use-cases/cache-aside/). Acesso em 17 nov. 2026.
-13. PgBouncer. *Configuration*. [Documentação oficial](https://www.pgbouncer.org/config.html). Acesso em 17 nov. 2026.
-14. Docker. *JSON File logging driver* e *Configure logging drivers*. [Driver JSON](https://docs.docker.com/engine/logging/drivers/json-file/), [configuração](https://docs.docker.com/engine/logging/configure/). Acesso em 17 nov. 2026.
+10. Chen, Tse-Hsun; Shang, Weiyi; Jiang, Zhen Ming; Hassan, Ahmed E.; Nasser, Mohamed; Flora, Parminder. *Detecting Performance Anti-patterns for Applications Developed using Object-Relational Mapping*. ICSE 2014. [PDF do artigo](https://petertsehsun.github.io/papers/peter_icse2014.pdf). Acesso em 17 nov. 2026.
 
 ## 9. Uso de IA
 
-Ferramenta de IA usada: Codex (GPT-6). Foi usada para organizar hipóteses, revisar planos e apoiar a redação deste artigo e dos registros. Os números foram conferidos contra `resultados/`; a equivalência das visões foi registrada em `diagnostico/33-equivalencia-visoes-pedidos.txt`, e o verificador de contrato foi executado. As fontes técnicas listadas foram abertas e conferidas.
+A IA foi utilizada como ferramenta de apoio na análise, no diagnóstico e na otimização do projeto. Primeiro, executei três rodadas de testes para observar o comportamento da aplicação e registrar os resultados. Depois, fiz uma quarta execução exploratória e usei a IA para analisar os dados disponíveis e apontar possíveis gargalos.
+
+Com base nessas hipóteses, investiguei o código e as consultas SQL para entender como os dados eram buscados e processados. Identifiquei oportunidades de reduzir consultas repetidas e trabalho desnecessário. A partir delas, alterei o código e continuei executando testes para avaliar os efeitos de cada mudança.
+
+Durante o processo, usei o Codex para me ajudar a interpretar os resultados e localizar pontos de maior consumo de CPU e memória. Comparei as medições antes e depois para identificar quais alterações trouxeram melhora, quais tiveram efeitos mistos e quais não justificaram ser mantidas.
+
+A IA ajudou a organizar hipóteses e direcionar a investigação, mas tomei as decisões sobre as alterações com base na minha análise do código, das consultas SQL e dos dados medidos. Conferi os números nos arquivos de resultados. A comparação das visões está registrada em diagnostico/33-equivalencia-visoes-pedidos.txt, e o contrato foi verificado após as mudanças. Também abri e conferi as fontes técnicas citadas.
